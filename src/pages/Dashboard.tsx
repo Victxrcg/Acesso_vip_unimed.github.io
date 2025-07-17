@@ -35,7 +35,7 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/clientes')
+    fetch('https://acessovipunimedgithubio-production.up.railway.app/api/clientes')
       .then(res => res.json())
       .then(clientes => {
         console.log('CLIENTES:', clientes); // Depuração
@@ -231,7 +231,7 @@ function AuditActionsCard() {
       JSON.stringify({ tipo: selected, melhoria })
     );
     try {
-      const res = await fetch("http://localhost:3001/api/audit", {
+      const res = await fetch("https://acessovipunimedgithubio-production.up.railway.app/api/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: selected, melhoria })

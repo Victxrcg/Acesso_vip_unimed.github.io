@@ -58,8 +58,11 @@ const Customers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Troque a base das URLs para a produção
+  const API_BASE = "https://acessovipunimedgithubio-production.up.railway.app";
+
   useEffect(() => {
-    fetch('http://localhost:3001/api/clientes')
+    fetch(`${API_BASE}/api/clientes`)
       .then((res) => res.json())
       .then((data) => {
         // Mapear campos do backend para o formato esperado pelo front
@@ -88,7 +91,7 @@ const Customers = () => {
             sms: c.sms ? "SIM" : "NÃO",
             ura: c.ura ? "SIM" : "NÃO",
             envioNegociacao: c.envio_negociacao,
-            audioUrl: cpfcnpjOriginal ? `http://localhost:3001/download/${cpfcnpjOriginal}` : undefined,
+            audioUrl: cpfcnpjOriginal ? `${API_BASE}/download/${cpfcnpjOriginal}` : undefined,
             audioName: audioFileName,
             audioUploadDate: undefined // Não há campo correspondente
           };
@@ -215,7 +218,7 @@ const Customers = () => {
 
   const loadAttachments = async (cpf: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/attachments/${cpf}`);
+      const response = await fetch(`${API_BASE}/api/attachments/${cpf}`);
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
@@ -231,7 +234,7 @@ const Customers = () => {
   };
 
   const handleAttachmentDownload = (fileName: string, originalName: string) => {
-    window.open(`http://localhost:3001/api/attachments/download/${fileName}`, '_blank');
+    window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
   };
 
   const handleDownloadAllAttachments = () => {
@@ -239,7 +242,7 @@ const Customers = () => {
     
     // Para cada anexo, abrir em uma nova aba (o navegador vai baixar automaticamente)
     attachments.forEach(attachment => {
-      window.open(`http://localhost:3001/api/attachments/download/${attachment.fileName}`, '_blank');
+      window.open(`${API_BASE}/api/attachments/download/${attachment.fileName}`, '_blank');
     });
     
     toast({

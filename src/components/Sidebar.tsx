@@ -25,7 +25,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/clientes')
+    fetch('https://acessovipunimedgithubio-production.up.railway.app/api/clientes')
       .then(res => res.json())
       .then(data => setClientesCount(data.length))
       .catch(() => setClientesCount(0));
