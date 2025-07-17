@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "my-panel",
+			"path": "."
+		},
+		{
+			"name": "front",
+			"path": "../front"
+		}
+	],
+	"settings": {}
+}
