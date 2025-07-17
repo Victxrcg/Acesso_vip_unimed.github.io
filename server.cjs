@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('API Unimed VIP rodando! Consulte /api/clientes, /login, etc.');
+});
+
 app.get('/api/clientes', (req, res) => {
   try {
     const filePath = path.join(process.cwd(), 'data', 'clientes.yaml');
