@@ -1,4 +1,8 @@
 {
-  "build": "npm install && npm run build",
-  "start": "node server.cjs"
+  "build": {
+    "command": "npm install && npm run build"
+  },
+  "start": {
+    "command": "node server.cjs"
+  }
 } 
