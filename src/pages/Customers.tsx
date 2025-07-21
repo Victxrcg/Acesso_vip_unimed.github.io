@@ -455,39 +455,15 @@ const Customers = () => {
                     <TableCell>{customer.dataVencimento}</TableCell>
                     <TableCell>{customer.acao}</TableCell>
                     <TableCell>
-                      {(() => {
-                        console.log('DEBUG audioUrl:', customer.audioUrl, 'audioName:', customer.audioName, 'cpfCnpj:', customer.cpfCnpj);
-                        if (customer.audioUrl && customer.audioName) {
-                          return (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-green-100 text-green-700 hover:bg-green-200"
-                                onClick={() => handlePlayPause(customer)}
-                              >
-                                {isPlaying === customer.id ? (
-                                  <Pause className="h-4 w-4" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <audio
-                                ref={el => (audioRefs.current[customer.id] = el)}
-                                src={customer.audioUrl}
-                                onEnded={() => setIsPlaying(null)}
-                                style={{ display: 'none' }}
-                              />
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <Badge variant="secondary" className="bg-muted/50 text-muted-foreground">
-                              Sem áudio
-                            </Badge>
-                          );
-                        }
-                      })()}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAudiosClick(customer)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileAudio className="h-4 w-4" />
+                        Áudios
+                      </Button>
                     </TableCell>
                     <TableCell>
                       <Button
