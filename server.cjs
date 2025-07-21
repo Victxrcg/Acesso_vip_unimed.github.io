@@ -241,6 +241,7 @@ app.post('/api/audit', (req, res) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `audit_decision_${timestamp}.txt`;
     const filePath = path.join(process.cwd(), 'my-panel/data/Aceites', fileName);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true }); // Garante que a pasta existe
     let content = `Decisão: ${tipo}\n`;
     if (melhoria) content += `Pontos de melhoria: ${melhoria}\n`;
     fs.writeFileSync(filePath, content, 'utf8');
