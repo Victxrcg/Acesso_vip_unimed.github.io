@@ -104,10 +104,7 @@ app.get('/api/attachments/:cpf', (req, res) => {
     files.forEach(file => {
       // Pega o prefixo do arquivo até o primeiro underline
       const filePrefix = file.split('_')[0];
-      let filePrefixBusca = filePrefix;
-      if (filePrefix.replace(/\D/g, '').length === 14) {
-        filePrefixBusca = normalizaCpfCnpj(filePrefix);
-      }
+      const filePrefixBusca = normalizaCpfCnpj(filePrefix);
       if (filePrefixBusca === cpfOuCnpjBusca) {
         const filePath = path.join(attachmentsDir, file);
         const stats = fs.statSync(filePath);
