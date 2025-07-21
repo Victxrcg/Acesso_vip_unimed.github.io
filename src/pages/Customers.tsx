@@ -35,6 +35,7 @@ import { Customer, Attachment } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import React, { useRef } from "react";
 
+
 // Função para normalizar CPF/CNPJ (remove pontos, traços, barras, espaços)
 function normalizaCpfCnpj(str: string) {
   return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
@@ -59,17 +60,12 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   // Troque a base das URLs para a produção
-  const API_BASE = import.meta.env.VITE_API_URL;
+  const API_BASE = "https://acessovipunimedgithubio-production.up.railway.app";
 
   useEffect(() => {
     fetch(`${API_BASE}/api/clientes`)
       .then((res) => res.json())
       .then((data) => {
-        if (!Array.isArray(data)) {
-          setCustomers([]);
-          setFilteredCustomers([]);
-          return;
-        }
         // Mapear campos do backend para o formato esperado pelo front
         const mappedCustomers = data.map((c: any) => {
           // Usa o CPF/CNPJ original (com pontuação) para montar a URL do áudio

@@ -23,6 +23,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -39,7 +40,7 @@ app.get('/api/clientes', (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('Erro ao ler clientes.yaml:', err);
-    res.status(200).json([]); // Sempre retorna array vazio em caso de erro
+    res.status(500).json({ error: 'Erro ao ler clientes.yaml', details: err.message, stack: err.stack });
   }
 });
 
@@ -81,30 +82,79 @@ app.get('/api/attachments/:cpf', (req, res) => {
   try {
     const { cpf } = req.params;
     const attachmentsDir = path.join(process.cwd(), 'data', 'attachments');
-
-    const attachments = [];
-    // 🎯 NORMALIZAÇÃO CONDICIONAL - só para CNPJ (14 dígitos)
-    let cpfOuCnpjBusca = cpf;
-    if (cpf.replace(/\D/g, '').length === 14) {
-      cpfOuCnpjBusca = normalizaCpfCnpj(cpf);
+    
+    console.log('🔍 Buscando anexos para CPF:', cpf);
+    console.log('📁 Diretório de anexos:', attachmentsDir);
+    
+    if (!fs.existsSync(attachmentsDir)) {
+      console.log('❌ Diretório de anexos não existe');
+      return res.json([]);
     }
 
+    const files = fs.readdirSync(attachmentsDir);
+    console.log('📄 Arquivos encontrados no diretório:', files);
+    
+    const attachments = [];
+
     files.forEach(file => {
-      // 🎯 CORRESPONDÊNCIA INTELIGENTE
-      const filePrefix = file.split('_')[0];
-      let filePrefixBusca = filePrefix;
-      if (filePrefix.replace(/\D/g, '').length === 14) {
-        filePrefixBusca = normalizaCpfCnpj(filePrefix);
-      }
-      if (filePrefixBusca === cpfOuCnpjBusca) {
-        // Arquivo encontrado!
+      console.log(`🔍 Verificando arquivo: ${file}`);
+      console.log(`🔍 Procurando por: ${cpf}_`);
+      
+      // Verifica se o arquivo começa com o CPF do cliente
+      if (file.startsWith(cpf + '_')) {
+        console.log(`✅ Arquivo encontrado: ${file}`);
+        const filePath = path.join(attachmentsDir, file);
+        const stats = fs.statSync(filePath);
+        const extension = path.extname(file);
+        
+        // Extrai o nome original (remove o CPF e timestamp do início)
+        const fileNameParts = file.split('_');
+        const originalName = fileNameParts.slice(2).join('_'); // Remove CPF e timestamp
+        
+        // Determina o tipo de arquivo baseado na extensão
+        let fileType = 'application/octet-stream';
+        switch (extension.toLowerCase()) {
+          case '.jpg':
+          case '.jpeg':
+            fileType = 'image/jpeg';
+            break;
+          case '.png':
+            fileType = 'image/png';
+            break;
+          case '.gif':
+            fileType = 'image/gif';
+            break;
+          case '.pdf':
+            fileType = 'application/pdf';
+            break;
+          case '.txt':
+            fileType = 'text/plain';
+            break;
+        }
+
+        attachments.push({
+          id: file, // Usa o nome do arquivo como ID
+          fileName: file,
+          originalName: originalName || file,
+          fileSize: stats.size,
+          uploadDate: stats.mtime.toISOString(),
+          description: '', // Sem descrição por enquanto
+          fileType: fileType
+        });
       }
     });
+
+    console.log(`📋 Total de anexos encontrados: ${attachments.length}`);
+    
+    // Ordena por data de modificação (mais recente primeiro)
+    attachments.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    
+    res.json(attachments);
   } catch (err) {
+    console.error('❌ Erro ao listar anexos:', err);
     res.status(500).json({ error: 'Erro ao listar anexos', details: err.message });
   }
 });
-
 
 // Novo endpoint para listar anexos via POST (CPF no body)
 app.post('/api/attachments', (req, res) => {
