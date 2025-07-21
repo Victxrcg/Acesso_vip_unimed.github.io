@@ -456,6 +456,7 @@ const Customers = () => {
                     <TableCell>{customer.acao}</TableCell>
                     <TableCell>
                       <Button
+                        type="button"
                         size="sm"
                         variant="outline"
                         onClick={() => handleAudiosClick(customer)}
