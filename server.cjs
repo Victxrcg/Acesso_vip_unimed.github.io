@@ -7,7 +7,22 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+const allowedOrigins = [
+  'https://acesso-vip-unimed-github-io.vercel.app',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permite requests sem origin (ex: mobile, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'A origem não é permitida pelo CORS.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.get('/', (req, res) => {
