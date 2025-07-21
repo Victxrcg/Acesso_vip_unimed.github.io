@@ -274,20 +274,10 @@ function AuditActionsCard() {
         <Button
           type="button"
           variant={selected === "aprovado" ? "default" : "outline"}
-          className={
-            `flex-1 transition-colors ${selected === "aprovado" ? "bg-green-600 hover:bg-green-700 text-white" : "hover:bg-green-100 hover:text-green-800"}`
-          }
+          className={`flex-1 transition-colors ${selected === "aprovado" ? "bg-green-500 text-white" : "hover:bg-green-100 hover:text-green-900"}`}
           onClick={() => handleSelect("aprovado")}
         >
           Aprovar todos auditados
-        </Button>
-        <Button
-          type="button"
-          variant={selected === "nao-conforme" ? "default" : "outline"}
-          className={`flex-1 transition-colors ${selected === "nao-conforme" ? "bg-destructive text-white" : "hover:bg-destructive/10 hover:text-destructive"}`}
-          onClick={() => handleSelect("nao-conforme")}
-        >
-          Não conforme
         </Button>
         <Button
           type="button"
@@ -295,7 +285,15 @@ function AuditActionsCard() {
           className={`flex-1 transition-colors ${selected === "pontos-melhoria" ? "bg-yellow-400 text-black" : "hover:bg-yellow-100 hover:text-yellow-900"}`}
           onClick={() => handleSelect("pontos-melhoria")}
         >
-          Pontos de melhoria
+          pontos de melhoria
+        </Button>
+        <Button
+          type="button"
+          variant={selected === "nao-conforme" ? "default" : "outline"}
+          className={`flex-1 transition-colors ${selected === "nao-conforme" ? "bg-red-500 text-white" : ""}`}
+          onClick={() => handleSelect("nao-conforme")}
+        >
+          Não conforme
         </Button>
       </div>
       {selected === "pontos-melhoria" && (
