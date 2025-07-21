@@ -240,7 +240,7 @@ app.post('/api/audit', (req, res) => {
     if (!tipo) return res.status(400).json({ error: 'Tipo de decisão é obrigatório' });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `audit_decision_${timestamp}.txt`;
-    const filePath = path.join(process.cwd(), 'my-panel/data/Aceites', fileName);
+    const filePath = path.join(process.cwd(), 'Aceites', fileName);
     fs.mkdirSync(path.dirname(filePath), { recursive: true }); // Garante que a pasta existe
     let content = `Decisão: ${tipo}\n`;
     if (melhoria) content += `Pontos de melhoria: ${melhoria}\n`;
@@ -253,11 +253,144 @@ app.post('/api/audit', (req, res) => {
 
 app.get('/api/audit/download/:file', (req, res) => {
   const { file } = req.params;
-  const filePath = path.join(process.cwd(), 'my-panel/data/Aceites', file);
+  const filePath = path.join(process.cwd(), 'Aceites', file);
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'Arquivo não encontrado' });
   }
   res.download(filePath);
+});
+
+// Endpoint para listar áudios de um cliente
+app.get('/api/audios/:cpf', (req, res) => {
+  try {
+    const { cpf } = req.params;
+    const audiosDir = path.join(process.cwd(), 'data', 'audios'); // 📁 Pasta dos áudios
+    
+    console.log('🔍 Buscando áudios para CPF:', cpf);
+    console.log('📁 Diretório de áudios:', audiosDir);
+    
+    if (!fs.existsSync(audiosDir)) {
+      console.log('❌ Diretório de áudios não existe');
+      return res.json([]);
+    }
+
+    const files = fs.readdirSync(audiosDir); // 📄 Lê todos os arquivos
+    console.log('📄 Arquivos encontrados no diretório de áudios:', files);
+    
+    const audios = [];
+    // 🎯 Normalização condicional para CNPJ
+    let cpfOuCnpjBusca = cpf;
+    if (cpf.replace(/\D/g, '').length === 14) {
+      cpfOuCnpjBusca = normalizaCpfCnpj(cpf);
+    }
+
+    files.forEach(file => {
+      // 🎯 Correspondência do arquivo com CPF/CNPJ
+      const filePrefix = file.split('_')[0];
+      let filePrefixBusca = filePrefix;
+      if (filePrefix.replace(/\D/g, '').length === 14) {
+        filePrefixBusca = normalizaCpfCnpj(filePrefix);
+      }
+      
+      if (filePrefixBusca === cpfOuCnpjBusca) {
+        const filePath = path.join(audiosDir, file);
+        const stats = fs.statSync(filePath);
+        const extension = path.extname(file);
+        
+        // 🎵 Filtro por extensões de áudio
+        const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.aac'];
+        if (audioExtensions.includes(extension.toLowerCase())) {
+          
+          // 📝 Determina tipo MIME do áudio
+          let fileType = 'audio/mpeg';
+          switch (extension.toLowerCase()) {
+            case '.mp3': fileType = 'audio/mpeg'; break;
+            case '.wav': fileType = 'audio/wav'; break;
+            case '.m4a': fileType = 'audio/mp4'; break;
+            case '.ogg': fileType = 'audio/ogg'; break;
+            case '.aac': fileType = 'audio/aac'; break;
+          }
+
+          // 📝 Monta objeto do áudio
+          audios.push({
+            id: file,
+            fileName: file,
+            originalName: fileNameParts.slice(1).join('_'), // Remove CPF do nome
+            fileSize: stats.size,
+            uploadDate: stats.mtime.toISOString(),
+            description: '',
+            fileType: fileType,
+            duration: null
+          });
+        }
+      }
+    });
+
+    console.log(`📋 Total de áudios encontrados: ${audios.length}`);
+    res.json(audios); // 📤 Retorna lista de áudios
+  } catch (err) {
+    console.error('❌ Erro ao listar áudios:', err);
+    res.status(500).json({ error: 'Erro ao listar áudios', details: err.message });
+  }
+});
+
+// Endpoint para download de áudio
+app.get('/api/audios/download/:fileName', (req, res) => {
+  try {
+    const { fileName } = req.params;
+    const filePath = path.join(process.cwd(), 'data', 'audios', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+
+    res.download(filePath); // 📤 Força download
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao fazer download do áudio', details: err.message });
+  }
+});
+
+// Endpoint para streaming de áudio (reprodução)
+app.get('/api/audios/stream/:fileName', (req, res) => {
+  try {
+    const { fileName } = req.params;
+    const filePath = path.join(process.cwd(), 'data', 'audios', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      // 🔄 Suporte a Range Requests (streaming)
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
+      const chunksize = (end-start)+1;
+      const file = fs.createReadStream(filePath, {start, end});
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'audio/mpeg',
+      };
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      // 📤 Streaming completo
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': 'audio/mpeg',
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: err.message });
+  }
 });
 
 app.listen(PORT, () => {

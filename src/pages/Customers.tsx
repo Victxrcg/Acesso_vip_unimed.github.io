@@ -54,6 +54,15 @@ const Customers = () => {
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isAudiosDialogOpen, setIsAudiosDialogOpen] = useState(false);
+  const [audios, setAudios] = useState<Attachment[]>([]);
+  const [currentPlayingAudio, setCurrentPlayingAudio] = useState<string | null>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioVolume, setAudioVolume] = useState(100);
+  const [audioSpeed, setAudioSpeed] = useState(1);
+  const [audioLoop, setAudioLoop] = useState(false);
   const { toast } = useToast();
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -239,6 +248,77 @@ const Customers = () => {
     window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
   };
 
+  const loadAudios = async (cpf: string) => {
+    try {
+      const encodedCpf = encodeURIComponent(cpf); // 🔗 Codifica CPF/CNPJ para URL
+      console.log('🎵 Buscando áudios para:', cpf, '→ URL codificada:', encodedCpf);
+  
+      // 📡 Faz requisição para o backend
+      const response = await fetch(`${API_BASE}/api/audios/${encodedCpf}`);
+      const data = await response.json();
+  
+      setAudios(data); // 💾 Salva áudios no estado
+      console.log('🎵 Áudios carregados:', data);
+    } catch (error) {
+      console.error('❌ Erro ao carregar áudios:', error);
+      setAudios([]);
+    }
+  };
+  const handleAudiosClick = async (customer: Customer) => {
+    setSelectedCustomer(customer);     // 👤 Define cliente selecionado
+    setIsAudiosDialogOpen(true);      // 🔓 Abre o modal
+    await loadAudios(customer.cpfCnpj); // 🎵 Carrega áudios do cliente
+  };
+
+  const handleAudioDownload = (fileName: string, originalName: string) => {
+    // 🌐 Abre nova aba para download
+    window.open(`${API_BASE}/api/audios/download/${fileName}`, '_blank');
+  };
+
+  const handleDownloadAllAudios = () => {
+    if (!selectedCustomer || audios.length === 0) return;
+  
+    // 🔄 Para cada áudio, abre nova aba para download
+    audios.forEach(audio => {
+      window.open(`${API_BASE}/api/audios/download/${audio.fileName}`, '_blank');
+    });
+  
+    toast({
+      title: "Download iniciado!",
+      description: `${audios.length} áudio(s) sendo baixado(s)`,
+    });
+  };
+
+  const handlePlayAudio = (fileName: string) => {
+    if (currentPlayingAudio === fileName) {
+      // ⏸️ Se já está tocando, pausa
+      setCurrentPlayingAudio(null);
+      const audioElement = document.getElementById(`audio-${fileName}`) as HTMLAudioElement;
+      if (audioElement) {
+        audioElement.pause();
+      }
+    } else {
+      // ⏹️ Para todos os outros áudios
+      const allAudios = document.querySelectorAll('audio');
+      allAudios.forEach(audio => audio.pause());
+  
+      // ▶️ Toca o áudio selecionado
+      setCurrentPlayingAudio(fileName);
+      const audioElement = document.getElementById(`audio-${fileName}`) as HTMLAudioElement;
+      if (audioElement) {
+        audioElement.play().catch(error => {
+          console.error('Erro ao reproduzir áudio:', error);
+          toast({
+            title: "Erro no áudio",
+            description: "Não foi possível reproduzir o áudio.",
+            variant: "destructive",
+          });
+          setCurrentPlayingAudio(null);
+        });
+      }
+    }
+  };
+
   const handleDownloadAllAttachments = () => {
     if (!selectedCustomer || attachments.length === 0) return;
     
@@ -342,8 +422,11 @@ const Customers = () => {
                   <TableHead>Credor</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Data da ação</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead>Áudio</TableHead>
+                  <TableHead>Última ação</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Áudios
+                    <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
+                  </TableHead>
                   <TableHead>
                     Anexos para download
                     <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
@@ -510,6 +593,130 @@ const Customers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 🎵 MODAL DE ÁUDIOS */}
+      <Dialog open={isAudiosDialogOpen} onOpenChange={setIsAudiosDialogOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Áudios - {selectedCustomer?.nome}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* 👤 Informações do Cliente */}
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">CPF/CNPJ:</span> {selectedCustomer?.cpfCnpj}
+                </div>
+                <div>
+                  <span className="font-medium">Matrícula:</span> {selectedCustomer?.matricula}
+                </div>
+              </div>
+            </div>
+
+            {/* 🎵 Lista de Áudios */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Áudios ({audios.length})</h3>
+                {audios.length > 0 && (
+                  <Button
+                    onClick={handleDownloadAllAudios} // 💾 Download de todos
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar Todos
+                  </Button>
+                )}
+              </div>
+              
+              {audios.length === 0 ? (
+                // 📭 Mensagem quando não há áudios
+                <div className="text-center py-8 text-muted-foreground">
+                  <Volume2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum áudio encontrado</p>
+                  <p className="text-sm">Não há áudios disponíveis para este cliente</p>
+                </div>
+              ) : (
+                // 🎵 Lista dos áudios
+                <div className="space-y-2">
+                  {audios.map((audio) => (
+                    <div
+                      key={audio.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                    >
+                      {/* 📝 Informações do áudio */}
+                      <div className="flex items-center gap-3">
+                        <FileAudio className="h-4 w-4" />
+                        <div>
+                          <div className="font-medium">{audio.originalName}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatFileSize(audio.fileSize)} • {new Date(audio.uploadDate).toLocaleDateString('pt-BR')}
+                          </div>
+                          {audio.description && (
+                            <div className="text-sm text-muted-foreground">
+                              {audio.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* 🎮 Controles do áudio */}
+                      <div className="flex items-center gap-2">
+                        {/* ▶️ Botão Play/Pause */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePlayAudio(audio.fileName)}
+                          className="flex items-center gap-1"
+                        >
+                          {currentPlayingAudio === audio.fileName ? (
+                            <>
+                              <Pause className="h-4 w-4" />
+                              Pausar
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              Tocar
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* 💾 Botão Download */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAudioDownload(audio.fileName, audio.originalName)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        
+                        {/* 🎵 Elemento de áudio oculto para reprodução */}
+                        <audio
+                          id={`audio-${audio.fileName}`}
+                          src={`${API_BASE}/api/audios/stream/${audio.fileName}`}
+                          onEnded={() => setCurrentPlayingAudio(null)}
+                          onError={() => {
+                            console.error('Erro ao carregar áudio:', audio.fileName);
+                            setCurrentPlayingAudio(null);
+                            toast({
+                              title: "Erro no áudio",
+                              description: "Não foi possível carregar o áudio.",
+                              variant: "destructive",
+                            });
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Dialog para Gerenciar Anexos */}
       <Dialog open={isAttachmentsDialogOpen} onOpenChange={setIsAttachmentsDialogOpen}>
