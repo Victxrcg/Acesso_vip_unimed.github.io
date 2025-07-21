@@ -288,14 +288,11 @@ app.get('/api/audios/:cpf', (req, res) => {
     }
 
     files.forEach(file => {
-      // 🎯 Correspondência do arquivo com CPF/CNPJ
+      // Pega o prefixo do arquivo até o primeiro underline
       const filePrefix = file.split('_')[0];
-      let filePrefixBusca = filePrefix;
-      if (filePrefix.replace(/\D/g, '').length === 14) {
-        filePrefixBusca = normalizaCpfCnpj(filePrefix);
-      }
-      
-      if (filePrefixBusca === cpfOuCnpjBusca) {
+      const filePrefixBusca = normalizaCpfCnpj(filePrefix);
+      const cpfOuCnpjBuscaNormalizado = normalizaCpfCnpj(cpf);
+      if (filePrefixBusca === cpfOuCnpjBuscaNormalizado) {
         const filePath = path.join(audiosDir, file);
         const stats = fs.statSync(filePath);
         const extension = path.extname(file);
@@ -318,7 +315,7 @@ app.get('/api/audios/:cpf', (req, res) => {
           audios.push({
             id: file,
             fileName: file,
-            originalName: fileNameParts.slice(1).join('_'), // Remove CPF do nome
+            originalName: file.split('_').slice(1).join('_'), // Remove CPF do nome
             fileSize: stats.size,
             uploadDate: stats.mtime.toISOString(),
             description: '',
