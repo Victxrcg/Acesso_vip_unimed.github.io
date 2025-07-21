@@ -234,6 +234,31 @@ app.get('/api/attachments/download/:fileName', (req, res) => {
   }
 });
 
+app.post('/api/audit', (req, res) => {
+  try {
+    const { tipo, melhoria } = req.body;
+    if (!tipo) return res.status(400).json({ error: 'Tipo de decisão é obrigatório' });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `audit_decision_${timestamp}.txt`;
+    const filePath = path.join(process.cwd(), 'my-panel/data/Aceites', fileName);
+    let content = `Decisão: ${tipo}\n`;
+    if (melhoria) content += `Pontos de melhoria: ${melhoria}\n`;
+    fs.writeFileSync(filePath, content, 'utf8');
+    res.json({ success: true, file: fileName });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar decisão', details: err.message });
+  }
+});
+
+app.get('/api/audit/download/:file', (req, res) => {
+  const { file } = req.params;
+  const filePath = path.join(process.cwd(), 'my-panel/data/Aceites', file);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Arquivo não encontrado' });
+  }
+  res.download(filePath);
+});
+
 app.listen(PORT, () => {
   const publicUrl = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_URL || null;
   if (publicUrl) {
