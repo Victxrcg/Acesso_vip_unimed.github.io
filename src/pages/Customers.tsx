@@ -65,6 +65,11 @@ const Customers = () => {
     fetch(`${API_BASE}/api/clientes`)
       .then((res) => res.json())
       .then((data) => {
+        if (!Array.isArray(data)) {
+          setCustomers([]);
+          setFilteredCustomers([]);
+          return;
+        }
         // Mapear campos do backend para o formato esperado pelo front
         const mappedCustomers = data.map((c: any) => {
           // Usa o CPF/CNPJ original (com pontuação) para montar a URL do áudio

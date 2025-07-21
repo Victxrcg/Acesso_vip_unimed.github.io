@@ -39,7 +39,7 @@ app.get('/api/clientes', (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('Erro ao ler clientes.yaml:', err);
-    res.status(500).json({ error: 'Erro ao ler clientes.yaml', details: err.message, stack: err.stack });
+    res.status(200).json([]); // Sempre retorna array vazio em caso de erro
   }
 });
 
