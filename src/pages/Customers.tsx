@@ -345,7 +345,7 @@ const Customers = () => {
                   <TableHead>Ação</TableHead>
                   <TableHead>Áudio</TableHead>
                   <TableHead>
-                    Anexos
+                    Anexos para download
                     <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
                   </TableHead>
                 </TableRow>
@@ -414,7 +414,7 @@ const Customers = () => {
                         className="flex items-center gap-2"
                       >
                         <Paperclip className="h-4 w-4" />
-                        <span>Anexos</span>
+                        <span>Anexos para download</span>
                       </Button>
                     </TableCell>
                   </TableRow>
