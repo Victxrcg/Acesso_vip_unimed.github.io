@@ -95,14 +95,20 @@ app.get('/api/attachments/:cpf', (req, res) => {
     console.log('📄 Arquivos encontrados no diretório:', files);
     
     const attachments = [];
+    // Normaliza apenas se for CNPJ (14 dígitos)
+    let cpfOuCnpjBusca = cpf;
+    if (cpf.replace(/\D/g, '').length === 14) {
+      cpfOuCnpjBusca = normalizaCpfCnpj(cpf);
+    }
 
     files.forEach(file => {
-      console.log(`🔍 Verificando arquivo: ${file}`);
-      console.log(`🔍 Procurando por: ${cpf}_`);
-      
-      // Verifica se o arquivo começa com o CPF do cliente
-      if (file.startsWith(cpf + '_')) {
-        console.log(`✅ Arquivo encontrado: ${file}`);
+      // Pega o prefixo do arquivo até o primeiro underline
+      const filePrefix = file.split('_')[0];
+      let filePrefixBusca = filePrefix;
+      if (filePrefix.replace(/\D/g, '').length === 14) {
+        filePrefixBusca = normalizaCpfCnpj(filePrefix);
+      }
+      if (filePrefixBusca === cpfOuCnpjBusca) {
         const filePath = path.join(attachmentsDir, file);
         const stats = fs.statSync(filePath);
         const extension = path.extname(file);
@@ -115,8 +121,6 @@ app.get('/api/attachments/:cpf', (req, res) => {
         let fileType = 'application/octet-stream';
         switch (extension.toLowerCase()) {
           case '.jpg':
-          case '.jpeg':
-            fileType = 'image/jpeg';
             break;
           case '.png':
             fileType = 'image/png';
