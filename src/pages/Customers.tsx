@@ -139,8 +139,19 @@ const Customers = () => {
       filtered = filtered.filter(customer => customer.acao && customer.acao.toLowerCase() === acaoFilter);
     }
 
-    // Ordenação por dataVencimento (ou outro campo de data)
+    // Ordenação por prioridade: ACD > URA > outros, depois por dataVencimento
     filtered = filtered.slice().sort((a, b) => {
+      const getPriority = (acao) => {
+        if (!acao) return 2;
+        const acaoLower = acao.toLowerCase();
+        if (acaoLower === "acd") return 0;
+        if (acaoLower === "ura") return 1;
+        return 2;
+      };
+      const priorityA = getPriority(a.acao);
+      const priorityB = getPriority(b.acao);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      // Se mesma prioridade, ordenar por dataVencimento (ou outro campo de data)
       const dateA = a.dataVencimento ? new Date(a.dataVencimento.split('/').reverse().join('-')) : new Date(0);
       const dateB = b.dataVencimento ? new Date(b.dataVencimento.split('/').reverse().join('-')) : new Date(0);
       if (orderBy === "recent") {
