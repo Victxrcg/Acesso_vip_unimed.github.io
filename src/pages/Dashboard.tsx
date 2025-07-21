@@ -180,6 +180,7 @@ const Dashboard = () => {
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" />
                     <span className="text-sm">Com Áudio</span>
+                    <span className="text-sm">Com Arquivos</span>
                   </div>
                   <span className="font-semibold">{metrics.clientesComAudio || 0}</span>
                 </div>
