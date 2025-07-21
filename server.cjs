@@ -59,7 +59,7 @@ app.get('/login', (req, res) => {
   res.status(405).json({ error: 'Use POST para autenticação.' });
 });
 
-function normalizaCpfCnpj(str) {
+function normalizaCpfCnpj(str: string) {
   return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
 }
 
