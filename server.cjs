@@ -9,6 +9,9 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
   'https://acesso-vip-unimed-github-io.vercel.app',
+  'https://acesso-vip-unimed-github-io.vercel.app/customers',
+  'https://acesso-vip-unimed-github-io.vercel.app/login',
+  'https://acesso-vip-unimed-github-io.vercel.app/dashboard',
 ];
 
 app.use(cors({
@@ -330,7 +333,7 @@ app.get('/api/audios/:cpf', (req, res) => {
     res.json(audios); // 📤 Retorna lista de áudios
   } catch (err) {
     console.error('❌ Erro ao listar áudios:', err);
-    res.status(500).json({ error: 'Erro ao listar áudios', details: err.message });
+    res.status(200).json([]); // Sempre retorna array vazio em caso de erro
   }
 });
 
