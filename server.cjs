@@ -393,10 +393,6 @@ app.get('/api/audios/stream/:fileName', (req, res) => {
   }
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
-});
-
 app.listen(PORT, () => {
   const publicUrl = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_URL || null;
   if (publicUrl) {
