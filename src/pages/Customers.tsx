@@ -40,6 +40,8 @@ function normalizaCpfCnpj(str: string) {
   return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
 }
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -58,7 +60,7 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API}/api/clientes`)
+    fetch(`${API_BASE}/api/clientes`)
       .then((res) => res.json())
       .then((data) => {
         // Mapear campos do backend para o formato esperado pelo front
@@ -87,7 +89,7 @@ const Customers = () => {
             sms: c.sms ? "SIM" : "NÃO",
             ura: c.ura ? "SIM" : "NÃO",
             envioNegociacao: c.envio_negociacao,
-            audioUrl: cpfcnpjOriginal ? `${import.meta.env.VITE_API}/download/${cpfcnpjOriginal}` : undefined,
+            audioUrl: cpfcnpjOriginal ? `${API_BASE}/download/${cpfcnpjOriginal}` : undefined,
             audioName: audioFileName,
             audioUploadDate: undefined // Não há campo correspondente
           };
@@ -212,7 +214,7 @@ const Customers = () => {
     try {
       const encodedCpf = encodeURIComponent(cpf);
       console.log('Buscando anexos para:', cpf, '→ URL codificada:', encodedCpf);
-      const response = await fetch(`${import.meta.env.VITE_API}/api/attachments/${encodedCpf}`);
+      const response = await fetch(`${API_BASE}/api/attachments/${encodedCpf}`);
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
@@ -228,7 +230,7 @@ const Customers = () => {
   };
 
   const handleAttachmentDownload = (fileName: string, originalName: string) => {
-    window.open(`${import.meta.env.VITE_API}/api/attachments/download/${fileName}`, '_blank');
+    window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
   };
 
   const handleDownloadAllAttachments = () => {
@@ -236,7 +238,7 @@ const Customers = () => {
     
     // Para cada anexo, abrir em uma nova aba (o navegador vai baixar automaticamente)
     attachments.forEach(attachment => {
-      window.open(`${import.meta.env.VITE_API}/api/attachments/download/${attachment.fileName}`, '_blank');
+      window.open(`${API_BASE}/api/attachments/download/${attachment.fileName}`, '_blank');
     });
     
     toast({
