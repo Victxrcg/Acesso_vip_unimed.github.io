@@ -35,6 +35,7 @@ import { Customer, Attachment } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import React, { useRef } from "react";
 
+
 // Função para normalizar CPF/CNPJ (remove pontos, traços, barras, espaços)
 function normalizaCpfCnpj(str: string) {
   return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
