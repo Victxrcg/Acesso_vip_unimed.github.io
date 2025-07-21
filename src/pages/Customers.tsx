@@ -35,7 +35,6 @@ import { Customer, Attachment } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import React, { useRef } from "react";
 
-
 // Função para normalizar CPF/CNPJ (remove pontos, traços, barras, espaços)
 function normalizaCpfCnpj(str: string) {
   return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
@@ -51,7 +50,6 @@ const Customers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const { toast } = useToast();
@@ -59,11 +57,8 @@ const Customers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Troque a base das URLs para a produção
-  const API_BASE = "https://acessovipunimedgithubio-production.up.railway.app";
-
   useEffect(() => {
-    fetch(`${API_BASE}/api/clientes`)
+    fetch(`${import.meta.env.VITE_API}/api/clientes`)
       .then((res) => res.json())
       .then((data) => {
         // Mapear campos do backend para o formato esperado pelo front
@@ -92,7 +87,7 @@ const Customers = () => {
             sms: c.sms ? "SIM" : "NÃO",
             ura: c.ura ? "SIM" : "NÃO",
             envioNegociacao: c.envio_negociacao,
-            audioUrl: cpfcnpjOriginal ? `${API_BASE}/download/${cpfcnpjOriginal}` : undefined,
+            audioUrl: cpfcnpjOriginal ? `${import.meta.env.VITE_API}/download/${cpfcnpjOriginal}` : undefined,
             audioName: audioFileName,
             audioUploadDate: undefined // Não há campo correspondente
           };
@@ -104,7 +99,7 @@ const Customers = () => {
         setCustomers([]);
         setFilteredCustomers([]);
       });
-  }, []);
+  }, []); // <--- array vazio: executa só uma vez ao montar o componente
 
   useEffect(() => {
     let filtered = customers;
@@ -130,8 +125,19 @@ const Customers = () => {
       filtered = filtered.filter(customer => customer.acao && customer.acao.toLowerCase() === acaoFilter);
     }
 
-    // Ordenação por dataVencimento (ou outro campo de data)
+    // Ordenação por prioridade: ACD > URA > outros
     filtered = filtered.slice().sort((a, b) => {
+      const getPriority = (acao) => {
+        if (!acao) return 2;
+        const acaoLower = acao.toLowerCase();
+        if (acaoLower === "acd") return 0;
+        if (acaoLower === "ura") return 1;
+        return 2;
+      };
+      const priorityA = getPriority(a.acao);
+      const priorityB = getPriority(b.acao);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      // Se mesma prioridade, ordenar por dataVencimento (ou outro campo de data)
       const dateA = a.dataVencimento ? new Date(a.dataVencimento.split('/').reverse().join('-')) : new Date(0);
       const dateB = b.dataVencimento ? new Date(b.dataVencimento.split('/').reverse().join('-')) : new Date(0);
       if (orderBy === "recent") {
@@ -202,24 +208,11 @@ const Customers = () => {
     }
   };
 
-  const handlePlayPause = (customer: Customer) => {
-    const ref = audioRefs.current[customer.id];
-    if (!ref) return;
-    if (isPlaying === customer.id) {
-      ref.pause();
-      setIsPlaying(null);
-    } else {
-      // Pausa qualquer outro áudio tocando
-      Object.values(audioRefs.current).forEach(a => { if (a && !a.paused) a.pause(); });
-      ref.currentTime = 0;
-      ref.play();
-      setIsPlaying(customer.id);
-    }
-  };
-
   const loadAttachments = async (cpf: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/attachments/${cpf}`);
+      const encodedCpf = encodeURIComponent(cpf);
+      console.log('Buscando anexos para:', cpf, '→ URL codificada:', encodedCpf);
+      const response = await fetch(`${import.meta.env.VITE_API}/api/attachments/${encodedCpf}`);
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
@@ -235,7 +228,7 @@ const Customers = () => {
   };
 
   const handleAttachmentDownload = (fileName: string, originalName: string) => {
-    window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
+    window.open(`${import.meta.env.VITE_API}/api/attachments/download/${fileName}`, '_blank');
   };
 
   const handleDownloadAllAttachments = () => {
@@ -243,7 +236,7 @@ const Customers = () => {
     
     // Para cada anexo, abrir em uma nova aba (o navegador vai baixar automaticamente)
     attachments.forEach(attachment => {
-      window.open(`${API_BASE}/api/attachments/download/${attachment.fileName}`, '_blank');
+      window.open(`${import.meta.env.VITE_API}/api/attachments/download/${attachment.fileName}`, '_blank');
     });
     
     toast({
@@ -267,11 +260,11 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-2 sm:p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Gestão de Clientes</h1>
-          <p className="text-muted-foreground">Visualize e gerencie todos os clientes do sistema</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Gestão de Clientes</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Visualize e gerencie todos os clientes do sistema</p>
         </div>
         {/* Removidos os botões Exportar e Importar */}
       </div>
@@ -279,7 +272,7 @@ const Customers = () => {
       {/* Filtros */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -300,7 +293,7 @@ const Customers = () => {
             {/* Filtro de ordenação */}
             <Select value={orderBy} onValueChange={setOrderBy}>
               <SelectTrigger className="w-full sm:w-44">
-              <Filter className="h-4 w-4 mr-2" />
+                <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Ordenar" />
               </SelectTrigger>
               <SelectContent>
@@ -327,24 +320,74 @@ const Customers = () => {
       {/* Tabela de Clientes */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">
+          <CardTitle className="text-base sm:text-lg">
             Lista de Clientes ({filteredCustomers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          {/* Cards para mobile */}
+          <div className="block sm:hidden space-y-3">
+            {paginatedCustomers.map((customer) => (
+              <div key={customer.id} className="rounded-lg border p-3 flex flex-col gap-2 bg-white shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-full">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium break-words max-w-[120px]">{customer.nome}</div>
+                    <div className="text-xs text-muted-foreground">Mat: {customer.matricula}</div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="font-semibold">CPF/CNPJ:</span> {customer.cpfCnpj}
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="font-semibold">Credor:</span> {customer.credor}
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="font-semibold">Valor:</span> {formatCurrency(customer.valorRecebido)}
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="font-semibold">Data da ação:</span> {customer.dataVencimento}
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="font-semibold">Última Ação:</span> {customer.acao}
+                </div>
+                {/* Removido bloco de áudio */}
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-muted/50 text-muted-foreground">
+                    Sem áudio
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAttachmentsClick(customer)}
+                    className="flex items-center gap-1 px-2 h-8 text-xs"
+                    style={{ minWidth: 0 }}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Anexos
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Tabela para telas maiores */}
+          <div className="rounded-md border overflow-x-auto hidden sm:block">
+            <Table className="min-w-[700px] text-xs sm:text-sm">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
-                  <TableHead>Credor</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Data da ação</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead>Áudio</TableHead>
-                  <TableHead>
-                    Anexos
+                  <TableHead className="whitespace-nowrap">Cliente</TableHead>
+                  <TableHead className="whitespace-nowrap">CPF/CNPJ</TableHead>
+                  <TableHead className="whitespace-nowrap">Credor</TableHead>
+                  <TableHead className="whitespace-nowrap">Valor</TableHead>
+                  <TableHead className="whitespace-nowrap">Data da ação</TableHead>
+                  <TableHead className="whitespace-nowrap">Ultima Ação</TableHead>
+                  {/* Removido TableHead de Áudios */}
+                  <TableHead className="whitespace-nowrap">
+                    Anexos para download
                     <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
                   </TableHead>
                 </TableRow>
@@ -353,67 +396,34 @@ const Customers = () => {
                 {paginatedCustomers.map((customer) => (
                   <TableRow key={customer.id} className="table-row">
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-full">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="p-1.5 sm:p-2 bg-primary/10 rounded-full">
                           <User className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <div className="font-medium">{customer.nome}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-medium break-words max-w-[120px] sm:max-w-none">{customer.nome}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             Mat: {customer.matricula}
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{customer.cpfCnpj}</TableCell>
-                    <TableCell>{customer.credor}</TableCell>
+                    <TableCell className="font-medium break-words max-w-[90px] sm:max-w-none">{customer.cpfCnpj}</TableCell>
+                    <TableCell className="break-words max-w-[90px] sm:max-w-none">{customer.credor}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(customer.valorRecebido)}</TableCell>
                     <TableCell>{customer.dataVencimento}</TableCell>
                     <TableCell>{customer.acao}</TableCell>
-                    <TableCell>
-                      {(() => {
-                        console.log('DEBUG audioUrl:', customer.audioUrl, 'audioName:', customer.audioName, 'cpfCnpj:', customer.cpfCnpj);
-                        if (customer.audioUrl && customer.audioName) {
-                          return (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-green-100 text-green-700 hover:bg-green-200"
-                                onClick={() => handlePlayPause(customer)}
-                              >
-                                {isPlaying === customer.id ? (
-                                  <Pause className="h-4 w-4" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <audio
-                                ref={el => (audioRefs.current[customer.id] = el)}
-                                src={customer.audioUrl}
-                                onEnded={() => setIsPlaying(null)}
-                                style={{ display: 'none' }}
-                              />
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <Badge variant="secondary" className="bg-muted/50 text-muted-foreground">
-                              Sem áudio
-                            </Badge>
-                          );
-                        }
-                      })()}
-                    </TableCell>
+                    {/* Removido TableCell de Áudios */}
                     <TableCell>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleAttachmentsClick(customer)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 h-8 sm:h-9 text-xs sm:text-sm"
+                        style={{ minWidth: 0 }}
                       >
                         <Paperclip className="h-4 w-4" />
-                        <span>Anexos</span>
+                        <span>Anexos para download</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -423,7 +433,7 @@ const Customers = () => {
           </div>
          {/* Controles de Paginação */}
          {totalPages > 1 && (
-           <div className="flex justify-center items-center gap-2 mt-4">
+           <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
              <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                Anterior
              </Button>
@@ -533,7 +543,7 @@ const Customers = () => {
             {/* Lista de Anexos */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Anexos ({attachments.length})</h3>
+                <h3 className="text-lg font-medium">Anexos para download ({attachments.length})</h3>
                 {attachments.length > 0 && (
                   <Button
                     onClick={handleDownloadAllAttachments}

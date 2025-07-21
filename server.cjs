@@ -22,13 +22,8 @@ app.use(cors({
     return callback(null, true);
   },
   credentials: true,
-}));
-
+})); // Libera para qualquer origem
 app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.send('API Unimed VIP rodando! Consulte /api/clientes, /login, etc.');
-});
 
 app.get('/api/clientes', (req, res) => {
   try {
@@ -44,7 +39,6 @@ app.get('/api/clientes', (req, res) => {
   }
 });
 
-// Endpoint de login (POST)
 app.post('/login', (req, res) => {
   const { usuario, senha } = req.body;
   if (usuario === 'vip' && senha === 'unimedvip2024') {
@@ -54,79 +48,90 @@ app.post('/login', (req, res) => {
   }
 });
 
-// Novo endpoint GET para /login (mensagem amigável)
-app.get('/login', (req, res) => {
-  res.status(405).json({ error: 'Use POST para autenticação.' });
-});
-
 function normalizaCpfCnpj(str) {
-  return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
+  return str.replace(/[.\-\/]/g, '').replace(/\s/g, '');
 }
 
-app.get('/download/:cpfcnpj', (req, res) => {
-  const cpfcnpj = normalizaCpfCnpj(req.params.cpfcnpj);
-  const audiosDir = path.join(process.cwd(), 'data', 'audios');
-  const files = fs.readdirSync(audiosDir);
 
-  // Procura arquivo que começa com o cpfcnpj normalizado
-  const audioFile = files.find(f => normalizaCpfCnpj(f).startsWith(cpfcnpj));
-  if (audioFile) {
-    res.sendFile(path.join(audiosDir, audioFile));
-  } else {
-    res.status(404).send('Áudio não encontrado');
+app.get('/download/:cpfcnpj', (req, res) => {
+  const cpfcnpj  = normalizaCpfCnpj(req.params.cpfcnpj);
+  const audiosDir = path.join(process.cwd(), 'data', 'audios');
+
+  try {
+    const files = fs.readdirSync(audiosDir);
+    const audioFile = files.find(f => normalizaCpfCnpj(f).startsWith(cpfcnpj));
+
+    if (!audioFile) {
+      console.log('❌ Áudio não encontrado para CPF/CNPJ:', cpfcnpj);
+      return res.status(404).send('Áudio não encontrado');
+    }
+
+    const filePath = path.join(audiosDir, audioFile);
+
+    // ⚠️ Cabeçalhos para driblar bloqueio do firewall
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${audioFile}"`,
+      'Cache-Control': 'no-store',
+    });
+
+    console.log('📧 Servindo áudio:', audioFile, 'para CPF/CNPJ:', cpfcnpj);
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    console.error('Erro ao buscar áudio:', err);
+    res.status(500).send('Erro interno do servidor');
   }
 });
 
-// Endpoint para listar anexos de um cliente (GET)
+// Endpoint para listar arquivos de áudio disponíveis
+app.get('/audios', (req, res) => {
+  const audiosDir = path.join(process.cwd(), 'data', 'audios');
+  if (!fs.existsSync(audiosDir)) return res.json([]);
+  const files = fs.readdirSync(audiosDir).filter(f => f.endsWith('.mp3'));
+  res.json(files);
+});
+
+// Endpoint para listar anexos de um cliente
 app.get('/api/attachments/:cpf', (req, res) => {
   try {
     const { cpf } = req.params;
     const attachmentsDir = path.join(process.cwd(), 'data', 'attachments');
+    
+    console.log('🔍 Buscando anexos para CPF:', cpf);
+    console.log('📁 Diretório de anexos:', attachmentsDir);
+    
+    if (!fs.existsSync(attachmentsDir)) {
+      console.log('❌ Diretório de anexos não existe');
+      return res.json([]);
+    }
 
+    const files = fs.readdirSync(attachmentsDir);
+    console.log('📄 Arquivos encontrados no diretório:', files);
+    
     const attachments = [];
-    // 🎯 NORMALIZAÇÃO CONDICIONAL - só para CNPJ (14 dígitos)
+    // Normaliza apenas se for CNPJ (14 dígitos)
     let cpfOuCnpjBusca = cpf;
     if (cpf.replace(/\D/g, '').length === 14) {
       cpfOuCnpjBusca = normalizaCpfCnpj(cpf);
     }
 
     files.forEach(file => {
-      // 🎯 CORRESPONDÊNCIA INTELIGENTE
+      // Pega o prefixo do arquivo até o primeiro underline
       const filePrefix = file.split('_')[0];
       let filePrefixBusca = filePrefix;
       if (filePrefix.replace(/\D/g, '').length === 14) {
         filePrefixBusca = normalizaCpfCnpj(filePrefix);
       }
       if (filePrefixBusca === cpfOuCnpjBusca) {
-        // Arquivo encontrado!
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao listar anexos', details: err.message });
-  }
-});
-
-
-// Novo endpoint para listar anexos via POST (CPF no body)
-app.post('/api/attachments', (req, res) => {
-  try {
-    const { cpf } = req.body;
-    if (!cpf) {
-      return res.status(400).json({ error: 'CPF não informado' });
-    }
-    const attachmentsDir = path.join(process.cwd(), 'data', 'attachments');
-    if (!fs.existsSync(attachmentsDir)) {
-      return res.json([]);
-    }
-    const files = fs.readdirSync(attachmentsDir);
-    const attachments = [];
-    files.forEach(file => {
-      if (file.startsWith(cpf + '_')) {
         const filePath = path.join(attachmentsDir, file);
         const stats = fs.statSync(filePath);
         const extension = path.extname(file);
+        
+        // Extrai o nome original (remove o CPF e timestamp do início)
         const fileNameParts = file.split('_');
-        const originalName = fileNameParts.slice(2).join('_');
+        const originalName = fileNameParts.slice(2).join('_'); // Remove CPF e timestamp
+        
+        // Determina o tipo de arquivo baseado na extensão
         let fileType = 'application/octet-stream';
         switch (extension.toLowerCase()) {
           case '.jpg':
@@ -146,20 +151,27 @@ app.post('/api/attachments', (req, res) => {
             fileType = 'text/plain';
             break;
         }
+
         attachments.push({
-          id: file,
+          id: file, // Usa o nome do arquivo como ID
           fileName: file,
           originalName: originalName || file,
           fileSize: stats.size,
           uploadDate: stats.mtime.toISOString(),
-          description: '',
+          description: '', // Sem descrição por enquanto
           fileType: fileType
         });
       }
     });
+
+    console.log(`📋 Total de anexos encontrados: ${attachments.length}`);
+    
+    // Ordena por data de modificação (mais recente primeiro)
     attachments.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    
     res.json(attachments);
   } catch (err) {
+    console.error('❌ Erro ao listar anexos:', err);
     res.status(500).json({ error: 'Erro ao listar anexos', details: err.message });
   }
 });
@@ -180,11 +192,32 @@ app.get('/api/attachments/download/:fileName', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  const publicUrl = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_URL || null;
-  if (publicUrl) {
-    console.log(`Servidor backend rodando em ${publicUrl}`);
-  } else {
-    console.log(`Servidor backend rodando em http://localhost:${PORT}`);
+app.post('/api/audit', (req, res) => {
+  try {
+    const { tipo, melhoria } = req.body;
+    if (!tipo) return res.status(400).json({ error: 'Tipo de decisão é obrigatório' });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `audit_decision_${timestamp}.txt`;
+    const filePath = path.join(process.cwd(), 'my-panel/data/attachments', fileName);
+    let content = `Decisão: ${tipo}\n`;
+    if (melhoria) content += `Pontos de melhoria: ${melhoria}\n`;
+    fs.writeFileSync(filePath, content, 'utf8');
+    res.json({ success: true, file: fileName });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar decisão', details: err.message });
   }
-}); 
+});
+
+app.get('/api/audit/download/:file', (req, res) => {
+  const { file } = req.params;
+  const filePath = path.join(process.cwd(), 'my-panel/data/attachments', file);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Arquivo não encontrado' });
+  }
+  res.download(filePath);
+});
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor backend rodando em http://0.0.0.0:${PORT}`);
+});
+server.setTimeout(0); // Sem timeout
