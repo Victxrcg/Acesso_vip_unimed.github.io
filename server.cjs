@@ -77,7 +77,7 @@ app.get('/download/:cpfcnpj', (req, res) => {
   }
 });
 
-// Endpoint para listar anexos de um cliente (GET)
+// Endpoint para listar anexos de um cliente
 app.get('/api/attachments/:cpf', (req, res) => {
   try {
     const { cpf } = req.params;
@@ -117,38 +117,42 @@ app.get('/api/attachments/:cpf', (req, res) => {
         const fileNameParts = file.split('_');
         const originalName = fileNameParts.slice(2).join('_'); // Remove CPF e timestamp
         
-        // Determina o tipo de arquivo baseado na extensão
-        let fileType = 'application/octet-stream';
-        switch (extension.toLowerCase()) {
-          case '.jpg':
-            break;
-          case '.png':
-            fileType = 'image/png';
-            break;
-          case '.gif':
-            fileType = 'image/gif';
-            break;
-          case '.pdf':
-            fileType = 'application/pdf';
-            break;
-          case '.txt':
-            fileType = 'text/plain';
-            break;
-        }
-
-        attachments.push({
-          id: file, // Usa o nome do arquivo como ID
-          fileName: file,
-          originalName: originalName || file,
-          fileSize: stats.size,
-          uploadDate: stats.mtime.toISOString(),
-          description: '', // Sem descrição por enquanto
-          fileType: fileType
-        });
+      // Determina o tipo de arquivo baseado na extensão
+      let fileType = 'application/octet-stream';
+      switch (extension.toLowerCase()) {
+        case '.jpg':
+          fileType = 'image/jpeg';
+          break;
+        case '.jpeg':
+          fileType = 'image/jpeg';
+          break;
+        case '.png':
+          fileType = 'image/png';
+          break;
+        case '.gif':
+          fileType = 'image/gif';
+          break;
+        case '.pdf':
+          fileType = 'application/pdf';
+          break;
+        case '.txt':
+          fileType = 'text/plain';
+          break;
       }
-    });
 
-    console.log(`📋 Total de anexos encontrados: ${attachments.length}`);
+      attachments.push({
+        id: file, // Usa o nome do arquivo como ID
+        fileName: file,
+        originalName: originalName || file,
+        fileSize: stats.size,
+        uploadDate: stats.mtime.toISOString(),
+        description: '', // Sem descrição por enquanto
+        fileType: fileType
+      });
+    }
+  });
+
+  console.log(`📋 Total de anexos encontrados: ${attachments.length}`);
     
     // Ordena por data de modificação (mais recente primeiro)
     attachments.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());

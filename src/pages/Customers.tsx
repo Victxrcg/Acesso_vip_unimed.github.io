@@ -219,7 +219,8 @@ const Customers = () => {
 
   const loadAttachments = async (cpf: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/attachments/${cpf}`);
+      const cpfNormalizado = normalizaCpfCnpj(cpf);
+      const response = await fetch(`${API_BASE}/api/attachments/${cpfNormalizado}`);
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
