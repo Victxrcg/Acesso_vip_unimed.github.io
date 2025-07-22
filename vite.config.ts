@@ -9,4 +9,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    host: '0.0.0.0',
+    port: 3002,
+    allowedHosts: [
+      'auditoria.portes.com.br',
+      'api-auditaai.portes.com.br'
+    ]
+  },
 }); 
