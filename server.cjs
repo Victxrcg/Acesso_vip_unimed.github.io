@@ -34,7 +34,7 @@ app.use(cors({
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('API Unimed VIP rodando! Consulte /api/clientes, /login, etc.');
+  res.send('API Unimed VIP rodando! Versão: 1.0.0');
 });
 
 app.get('/api/clientes', (req, res) => {
