@@ -12,6 +12,10 @@ const allowedOrigins = [
   'https://acesso-vip-unimed-github-io.vercel.app/customers',
   'https://acesso-vip-unimed-github-io.vercel.app/login',
   'https://acesso-vip-unimed-github-io.vercel.app/dashboard',
+  'https://auditaai.portes.com.br',
+  'https://auditaai.portes.com.br/customers',
+  'https://auditaai.portes.com.br/login',
+  'https://auditaai.portes.com.br/dashboard',
 ];
 
 app.use(cors({
