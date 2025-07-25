@@ -2,6 +2,7 @@ export interface Customer {
   id: number;
   credor: string;
   cpfCnpj: string;
+  titulo: string;
   matricula: string;
   nome: string;
   dataVencimento: string;

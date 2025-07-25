@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const lotesRoutes = require('./routes/lotesRoutes');
@@ -214,6 +216,136 @@ app.post('/api/audit', async (req, res) => {
     res.json({ success: true, message: 'Decisão salva com sucesso' });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao salvar decisão', details: err.message });
+  }
+});
+
+// Endpoint para listar áudios de um cliente
+app.get('/api/audios/:cpf', (req, res) => {
+  try {
+    const { cpf } = req.params;
+    const audiosDir = path.join(process.cwd(), '..', 'data', 'audios');
+    
+    console.log('🔍 Buscando áudios para CPF:', cpf);
+    console.log('📁 Diretório de áudios:', audiosDir);
+    
+    if (!fs.existsSync(audiosDir)) {
+      console.log('❌ Diretório de áudios não existe');
+      return res.json([]);
+    }
+
+    const files = fs.readdirSync(audiosDir);
+    console.log('📄 Arquivos encontrados no diretório de áudios:', files);
+    
+    const audios = [];
+    // Normalização condicional para CNPJ
+    let cpfOuCnpjBusca = cpf;
+    if (cpf.replace(/\D/g, '').length === 14) {
+      cpfOuCnpjBusca = cpf.replace(/[.-/]/g, '').replace(/\s/g, '');
+    }
+
+    files.forEach(file => {
+      // Pega o prefixo do arquivo até o primeiro underline
+      const filePrefix = file.split('_')[0];
+      const filePrefixBusca = filePrefix.replace(/[.-/]/g, '').replace(/\s/g, '');
+      const cpfOuCnpjBuscaNormalizado = cpf.replace(/[.-/]/g, '').replace(/\s/g, '');
+      if (filePrefixBusca === cpfOuCnpjBuscaNormalizado) {
+        const filePath = path.join(audiosDir, file);
+        const stats = fs.statSync(filePath);
+        const extension = path.extname(file);
+        
+        // Filtro por extensões de áudio
+        const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.aac'];
+        if (audioExtensions.includes(extension.toLowerCase())) {
+          
+          // Determina tipo MIME do áudio
+          let fileType = 'audio/mpeg';
+          switch (extension.toLowerCase()) {
+            case '.mp3': fileType = 'audio/mpeg'; break;
+            case '.wav': fileType = 'audio/wav'; break;
+            case '.m4a': fileType = 'audio/mp4'; break;
+            case '.ogg': fileType = 'audio/ogg'; break;
+            case '.aac': fileType = 'audio/aac'; break;
+          }
+
+          // Monta objeto do áudio
+          audios.push({
+            id: file,
+            fileName: file,
+            originalName: file.split('_').slice(1).join('_'), // Remove CPF do nome
+            fileSize: stats.size,
+            uploadDate: stats.mtime.toISOString(),
+            description: '',
+            fileType: fileType,
+            duration: null
+          });
+        }
+      }
+    });
+
+    console.log(`📋 Total de áudios encontrados: ${audios.length}`);
+    res.json(audios);
+  } catch (err) {
+    console.error('❌ Erro ao listar áudios:', err);
+    res.status(200).json([]); // Sempre retorna array vazio em caso de erro
+  }
+});
+
+// Endpoint para download de áudio
+app.get('/api/audios/download/:fileName', (req, res) => {
+  try {
+    const { fileName } = req.params;
+    const filePath = path.join(process.cwd(), '..', 'data', 'audios', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+
+    res.download(filePath);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao fazer download do áudio', details: err.message });
+  }
+});
+
+// Endpoint para streaming de áudio (reprodução)
+app.get('/api/audios/stream/:fileName', (req, res) => {
+  try {
+    const { fileName } = req.params;
+    const filePath = path.join(process.cwd(), '..', 'data', 'audios', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      // Suporte a Range Requests (streaming)
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
+      const chunksize = (end-start)+1;
+      const file = fs.createReadStream(filePath, {start, end});
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'audio/mpeg',
+      };
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      // Streaming completo
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': 'audio/mpeg',
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: err.message });
   }
 });
 

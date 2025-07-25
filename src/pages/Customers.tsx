@@ -90,18 +90,19 @@ const Customers = () => {
           nome: String(ocorrencia.nome || 'Nome não informado'),
           cpfCnpj: String(ocorrencia.cpf_cnpj),
           credor: String(ocorrencia.credor),
+          titulo: String(ocorrencia.titulo || 'N/A'),
           matricula: String(ocorrencia.matricula || 'N/A'),
           valorRecebido: parseFloat(String(ocorrencia.valor_recebido)) || 0,
           dataVencimento: ocorrencia.vencimento ? new Date(String(ocorrencia.vencimento)).toLocaleDateString('pt-BR') : 'N/A',
           atraso: Number(ocorrencia.atraso_dias) || 0,
           acao: String(ocorrencia.acao || 'N/A'),
           plano: ocorrencia.plano ? String(ocorrencia.plano) : undefined,
-          dataPromessaPg: ocorrencia.data_promessa_pg ? String(ocorrencia.data_promessa_pg) : undefined,
-          dataPagamento: ocorrencia.data_pagamento ? String(ocorrencia.data_pagamento) : undefined,
+          dataPromessaPg: ocorrencia.data_promessa_pg ? new Date(String(ocorrencia.data_promessa_pg)).toLocaleDateString('pt-BR') : undefined,
+          dataPagamento: ocorrencia.data_pagamento ? new Date(String(ocorrencia.data_pagamento)).toLocaleDateString('pt-BR') : undefined,
           comissao: parseFloat(String(ocorrencia.comissao)) || 0,
           smsEnviado: ocorrencia.sms_enviado === 1,
           uraEnviado: ocorrencia.ura_enviado === 1,
-          envioNegociacao: ocorrencia.envio_negociacao ? String(ocorrencia.envio_negociacao) : undefined,
+          envioNegociacao: ocorrencia.envio_negociacao ? new Date(String(ocorrencia.envio_negociacao)).toLocaleDateString('pt-BR') : undefined,
           audioUrl: null, // Será carregado separadamente se necessário
           audioName: null,
           audioUploadDate: null
@@ -416,6 +417,15 @@ const Customers = () => {
             </div>
             {/* Filtro de status */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="overdue">Em Atraso</SelectItem>
+                <SelectItem value="upToDate">Em Dia</SelectItem>
+                <SelectItem value="withAudio">Com Áudio</SelectItem>
+              </SelectContent>
             </Select>
             {/* Filtro de ordenação */}
             <Select value={orderBy} onValueChange={setOrderBy}>
@@ -457,11 +467,15 @@ const Customers = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Título</TableHead>
                   <TableHead>CPF/CNPJ</TableHead>
                   <TableHead>Credor</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Data da ação</TableHead>
+                  <TableHead>Atraso</TableHead>
+                  <TableHead>Comissão</TableHead>
+                  <TableHead>Data Vencimento</TableHead>
                   <TableHead>Última ação</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="whitespace-nowrap">
                     Áudios
                     <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
@@ -488,11 +502,28 @@ const Customers = () => {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="font-medium">{customer.titulo}</TableCell>
                     <TableCell className="font-medium">{customer.cpfCnpj}</TableCell>
                     <TableCell>{customer.credor}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(customer.valorRecebido)}</TableCell>
+                    <TableCell>
+                      <Badge variant={customer.atraso > 0 ? "destructive" : "secondary"}>
+                        {customer.atraso} dias
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">{formatCurrency(customer.comissao)}</TableCell>
                     <TableCell>{customer.dataVencimento}</TableCell>
                     <TableCell>{customer.acao}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {customer.smsEnviado && (
+                          <Badge variant="outline" className="text-xs">SMS</Badge>
+                        )}
+                        {customer.uraEnviado && (
+                          <Badge variant="outline" className="text-xs">URA</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Button
                         type="button"
