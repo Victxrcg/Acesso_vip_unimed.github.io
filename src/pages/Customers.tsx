@@ -38,7 +38,7 @@ import React, { useRef } from "react";
 
 // Função para normalizar CPF/CNPJ (remove pontos, traços, barras, espaços)
 function normalizaCpfCnpj(str: string) {
-  return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
+  return str.replace(/[.-/]/g, '').replace(/\s/g, '');
 }
 
 const Customers = () => {
@@ -51,7 +51,7 @@ const Customers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState<number | null>(null);
   const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAudiosDialogOpen, setIsAudiosDialogOpen] = useState(false);
@@ -72,12 +72,57 @@ const Customers = () => {
   const API_BASE = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    // Por enquanto, deixar vazio ou buscar dados de outra fonte
-    // Os clientes agora ficam na tela Compliance
-    console.log('Tela Customers - clientes movidos para Compliance');
-    setCustomers([]);
-    setFilteredCustomers([]);
-  }, []);
+    const fetchCustomers = async () => {
+      try {
+        console.log('Buscando clientes da tabela ocorrencia...');
+        const response = await fetch(`${API_BASE}/api/ocorrencias`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Clientes carregados:', data);
+        
+        // Transformar dados da tabela ocorrencia para o formato esperado
+        const transformedCustomers = data.map((ocorrencia: Record<string, unknown>) => ({
+          id: Number(ocorrencia.id),
+          nome: String(ocorrencia.nome || 'Nome não informado'),
+          cpfCnpj: String(ocorrencia.cpf_cnpj),
+          credor: String(ocorrencia.credor),
+          matricula: String(ocorrencia.matricula || 'N/A'),
+          valorRecebido: parseFloat(String(ocorrencia.valor_recebido)) || 0,
+          dataVencimento: ocorrencia.vencimento ? new Date(String(ocorrencia.vencimento)).toLocaleDateString('pt-BR') : 'N/A',
+          atraso: Number(ocorrencia.atraso_dias) || 0,
+          acao: String(ocorrencia.acao || 'N/A'),
+          plano: ocorrencia.plano ? String(ocorrencia.plano) : undefined,
+          dataPromessaPg: ocorrencia.data_promessa_pg ? String(ocorrencia.data_promessa_pg) : undefined,
+          dataPagamento: ocorrencia.data_pagamento ? String(ocorrencia.data_pagamento) : undefined,
+          comissao: parseFloat(String(ocorrencia.comissao)) || 0,
+          smsEnviado: ocorrencia.sms_enviado === 1,
+          uraEnviado: ocorrencia.ura_enviado === 1,
+          envioNegociacao: ocorrencia.envio_negociacao ? String(ocorrencia.envio_negociacao) : undefined,
+          audioUrl: null, // Será carregado separadamente se necessário
+          audioName: null,
+          audioUploadDate: null
+        }));
+        
+        setCustomers(transformedCustomers);
+        setFilteredCustomers(transformedCustomers);
+      } catch (error) {
+        console.error('Erro ao buscar clientes:', error);
+        toast({
+          title: "Erro ao carregar clientes",
+          description: "Não foi possível carregar os dados dos clientes.",
+          variant: "destructive",
+        });
+        setCustomers([]);
+        setFilteredCustomers([]);
+      }
+    };
+
+    fetchCustomers();
+  }, [API_BASE, toast]);
 
   useEffect(() => {
     let filtered = customers;
@@ -105,7 +150,7 @@ const Customers = () => {
 
     // Ordenação por prioridade: ACD > URA > outros, depois por dataVencimento
     filtered = filtered.slice().sort((a, b) => {
-      const getPriority = (acao) => {
+      const getPriority = (acao: string) => {
         if (!acao) return 2;
         const acaoLower = acao.toLowerCase();
         if (acaoLower === "acd") return 0;
@@ -201,12 +246,31 @@ const Customers = () => {
     }
   };
 
-  const loadAttachments = async (cpf: string) => {
+  const loadAttachments = async (ocorrenciaId: number) => {
     try {
-      const cpfNormalizado = normalizaCpfCnpj(cpf);
-      const response = await fetch(`${API_BASE}/api/attachments/${cpfNormalizado}`);
+      console.log('Buscando anexos para ocorrência:', ocorrenciaId);
+      const response = await fetch(`${API_BASE}/api/ocorrencias/${ocorrenciaId}/media`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setAttachments(data);
+      console.log('Anexos carregados:', data);
+      
+      // Transformar dados da tabela media para o formato esperado
+      const transformedAttachments = data.map((media: Record<string, unknown>) => ({
+        id: String(media.id),
+        fileName: String(media.file_name),
+        originalName: String(media.file_name), // Usar file_name como originalName
+        fileType: String(media.mime_type || 'application/octet-stream'),
+        fileSize: Number(media.file_size_bytes) || 0,
+        uploadDate: String(media.uploaded_at),
+        description: `${String(media.media_type)} - ${String(media.file_name)}`,
+        mediaType: String(media.media_type)
+      }));
+      
+      setAttachments(transformedAttachments);
     } catch (error) {
       console.error('Erro ao carregar anexos:', error);
       setAttachments([]);
@@ -216,11 +280,11 @@ const Customers = () => {
   const handleAttachmentsClick = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsAttachmentsDialogOpen(true);
-    await loadAttachments(customer.cpfCnpj);
+    await loadAttachments(customer.id);
   };
 
   const handleAttachmentDownload = (fileName: string, originalName: string) => {
-    window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
+    window.open(`${API_BASE}/api/media/download/${fileName}`, '_blank');
   };
 
   const loadAudios = async (cpf: string) => {
@@ -299,7 +363,7 @@ const Customers = () => {
     
     // Para cada anexo, abrir em uma nova aba (o navegador vai baixar automaticamente)
     attachments.forEach(attachment => {
-      window.open(`${API_BASE}/api/attachments/download/${attachment.fileName}`, '_blank');
+      window.open(`${API_BASE}/api/media/download/${attachment.fileName}`, '_blank');
     });
     
     toast({

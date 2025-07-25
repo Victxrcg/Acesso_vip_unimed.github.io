@@ -1,3 +1,8 @@
+require('dotenv').config();
+console.log('🔧 Carregando variáveis de ambiente...');
+console.log('📁 Diretório atual:', process.cwd());
+console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -16,6 +21,11 @@ const allowedOrigins = [
   'https://auditaai.portes.com.br/customers',
   'https://auditaai.portes.com.br/login',
   'https://auditaai.portes.com.br/dashboard',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:3000',
+  'http://localhost:3001',
 ];
 
 app.use(cors({
@@ -34,7 +44,33 @@ app.use(cors({
 app.use(express.json());
 
 app.get('/', (req, res) => {
+  console.log('📡 GET / - Página inicial');
   res.send('API Unimed VIP rodando! Versão: 1.0.0');
+});
+
+// Endpoint para testar configuração
+app.get('/api/test-config', (req, res) => {
+  console.log('📡 GET /api/test-config - Testando configuração');
+  
+  const requiredEnvVars = ['SSH_USER', 'SSH_HOST', 'SSH_PASSWORD', 'DB_USER', 'DB_PASS', 'DB_NAME'];
+  const config = {};
+  
+  console.log('🔍 Verificando variáveis de ambiente...');
+  requiredEnvVars.forEach(varName => {
+    const hasValue = !!process.env[varName];
+    config[varName] = hasValue ? '✅ Configurado' : '❌ Não configurado';
+    console.log(`  ${varName}: ${hasValue ? '✅' : '❌'} ${hasValue ? '(valor presente)' : '(valor ausente)'}`);
+  });
+  
+  const allConfigured = requiredEnvVars.every(varName => process.env[varName]);
+  console.log(`🎯 Todas configuradas: ${allConfigured ? '✅' : '❌'}`);
+  
+  res.json({
+    message: 'Status da configuração',
+    config,
+    allConfigured,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/api/clientes', (req, res) => {
@@ -394,6 +430,246 @@ app.get('/api/audios/stream/:fileName', (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: err.message });
+  }
+});
+
+// ===== NOVAS APIs PARA TABELA OCORRENCIA E MEDIA =====
+
+// MySQL connection com SSH tunnel
+const mysql = require('mysql2/promise');
+const tunnel = require('tunnel-ssh');
+
+const tunnelConfig = {
+  username: process.env.SSH_USER,
+  host: process.env.SSH_HOST,
+  port: 22,
+  password: process.env.SSH_PASSWORD,
+  dstHost: process.env.DB_HOST, // deve ser 127.0.0.1
+  dstPort: process.env.DB_PORT, // deve ser 3306
+  localHost: '127.0.0.1',
+  localPort: 3307
+};
+
+// Função para obter conexão MySQL com SSH tunnel
+async function getConnection() {
+  console.log('🔧 Iniciando getConnection()...');
+  
+  // Verificar se as variáveis de ambiente estão configuradas
+  const requiredEnvVars = ['SSH_USER', 'SSH_HOST', 'SSH_PASSWORD', 'DB_USER', 'DB_PASS', 'DB_NAME'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  console.log('🔍 Verificando variáveis de ambiente...');
+  requiredEnvVars.forEach(varName => {
+    const hasValue = !!process.env[varName];
+    console.log(`  ${varName}: ${hasValue ? '✅' : '❌'} ${hasValue ? '(presente)' : '(ausente)'}`);
+  });
+  
+  if (missingVars.length > 0) {
+    console.error('❌ Variáveis de ambiente não configuradas:', missingVars);
+    throw new Error(`Variáveis de ambiente não configuradas: ${missingVars.join(', ')}`);
+  }
+  
+  console.log('🔧 Configuração SSH Tunnel:');
+  console.log('  SSH_USER:', process.env.SSH_USER);
+  console.log('  SSH_HOST:', process.env.SSH_HOST);
+  console.log('  SSH_PASSWORD:', process.env.SSH_PASSWORD ? '✅ Configurado' : '❌ Não configurado');
+  console.log('  DB_USER:', process.env.DB_USER);
+  console.log('  DB_PASS:', process.env.DB_PASS ? '✅ Configurado' : '❌ Não configurado');
+  console.log('  DB_NAME:', process.env.DB_NAME);
+  console.log('  DB_HOST:', process.env.DB_HOST || 'localhost (padrão)');
+  console.log('  DB_PORT:', process.env.DB_PORT || '3306 (padrão)');
+  
+  console.log('🔧 Configuração do tunnel:', {
+    username: process.env.SSH_USER,
+    host: process.env.SSH_HOST,
+    port: 22,
+    dstHost: process.env.DB_HOST || 'localhost',
+    dstPort: parseInt(process.env.DB_PORT) || 3306,
+    localHost: '127.0.0.1',
+    localPort: 3307
+  });
+  
+  return new Promise((resolve, reject) => {
+    console.log('🚇 Iniciando SSH tunnel...');
+    
+    tunnel(tunnelConfig, (error, server) => {
+      if (error) {
+        console.error('❌ Erro no SSH tunnel:', error);
+        console.error('📋 Stack trace do SSH:', error.stack);
+        reject(error);
+        return;
+      }
+      
+      console.log('✅ SSH tunnel estabelecido');
+      
+      const dbConfig = {
+        host: '127.0.0.1',
+        port: 3307,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME
+      };
+      
+      console.log('🔧 Configuração MySQL:', {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        database: dbConfig.database,
+        password: dbConfig.password ? '✅ Configurado' : '❌ Não configurado'
+      });
+      
+      const connection = mysql.createConnection(dbConfig);
+      
+      connection.then(conn => {
+        console.log('✅ Conexão MySQL estabelecida');
+        resolve({ connection: conn, server });
+      }).catch(err => {
+        console.error('❌ Erro ao conectar com MySQL:', err);
+        console.error('📋 Stack trace do MySQL:', err.stack);
+        server.close();
+        reject(err);
+      });
+    });
+  });
+}
+
+// API para listar todas as ocorrências
+app.get('/api/ocorrencias', async (req, res) => {
+  console.log('📡 GET /api/ocorrencias - Buscando ocorrências');
+  let connection, server;
+  
+  try {
+    console.log('🔗 Iniciando conexão com banco...');
+    ({ connection, server } = await getConnection());
+    console.log('✅ Conexão estabelecida, executando query...');
+    
+    const query = `
+      SELECT 
+        id,
+        credor,
+        cpf_cnpj,
+        titulo,
+        matricula,
+        nome,
+        vencimento,
+        atraso_dias,
+        valor_recebido,
+        plano,
+        data_promessa_pg,
+        data_pagamento,
+        comissao,
+        acao,
+        sms_enviado,
+        ura_enviado,
+        envio_negociacao,
+        created_at
+      FROM ocorrencia 
+      ORDER BY created_at DESC
+    `;
+    
+    console.log('📊 Executando query SQL...');
+    const [rows] = await connection.execute(query);
+    console.log(`✅ Query executada com sucesso. ${rows.length} registros encontrados.`);
+    
+    await connection.end();
+    if (server) server.close();
+    console.log('🔒 Conexões fechadas');
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('❌ Erro ao buscar ocorrências:', error);
+    console.error('📋 Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro ao buscar ocorrências', 
+      details: error.message,
+      stack: error.stack 
+    });
+  } finally {
+    try {
+      if (connection) {
+        await connection.end();
+        console.log('🔒 Conexão MySQL fechada');
+      }
+      if (server) {
+        server.close();
+        console.log('🔒 SSH tunnel fechado');
+      }
+    } catch (closeError) {
+      console.error('❌ Erro ao fechar conexões:', closeError);
+    }
+  }
+});
+
+// API para buscar mídia de uma ocorrência específica
+app.get('/api/ocorrencias/:id/media', async (req, res) => {
+  let connection, server;
+  try {
+    const { id } = req.params;
+    ({ connection, server } = await getConnection());
+    
+    const [rows] = await connection.execute(`
+      SELECT 
+        id,
+        ocorrencia_id,
+        media_type,
+        file_name,
+        file_path,
+        mime_type,
+        file_size_bytes,
+        uploaded_at
+      FROM media 
+      WHERE ocorrencia_id = ?
+      ORDER BY uploaded_at DESC
+    `, [id]);
+    
+    await connection.end();
+    if (server) server.close();
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar mídia da ocorrência:', error);
+    res.status(500).json({ error: 'Erro ao buscar mídia', details: error.message });
+  } finally {
+    if (connection) await connection.end();
+    if (server) server.close();
+  }
+});
+
+// API para download de mídia
+app.get('/api/media/download/:fileName', async (req, res) => {
+  let connection, server;
+  try {
+    const { fileName } = req.params;
+    
+    ({ connection, server } = await getConnection());
+    
+    const [rows] = await connection.execute(`
+      SELECT file_path, mime_type 
+      FROM media 
+      WHERE file_name = ?
+    `, [fileName]);
+    
+    await connection.end();
+    if (server) server.close();
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+    
+    const filePath = rows[0].file_path;
+    const mimeType = rows[0].mime_type || 'application/octet-stream';
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    }
+    
+    res.setHeader('Content-Type', mimeType);
+    res.download(filePath);
+  } catch (error) {
+    console.error('Erro ao fazer download:', error);
+    res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
+  } finally {
+    if (connection) await connection.end();
+    if (server) server.close();
   }
 });
 

@@ -64,7 +64,7 @@ app.get('/api/ocorrencias', async (req, res) => {
   let pool, server;
   try {
     ({ pool, server } = await getDbPoolWithTunnel());
-    const [rows] = await pool.query('SELECT * FROM ocorrencias');
+    const [rows] = await pool.query('SELECT * FROM ocorrencia');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar ocorrências', details: err.message });
