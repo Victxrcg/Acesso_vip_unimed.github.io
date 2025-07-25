@@ -69,50 +69,14 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   // Troque a base das URLs para a produção
-  const API_BASE = "https://acessovipunimedgithubio-production.up.railway.app";
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/clientes`)
-      .then((res) => res.json())
-      .then((data) => {
-        // Mapear campos do backend para o formato esperado pelo front
-        const mappedCustomers = data.map((c: any) => {
-          // Usa o CPF/CNPJ original (com pontuação) para montar a URL do áudio
-          const cpfcnpjOriginal = c.cpf_cnpj;
-          let audioFileName = undefined;
-          if (cpfcnpjOriginal) {
-            audioFileName = c.audio_id || undefined;
-          }
-          return {
-            id: c.id,
-            credor: c.credor,
-            cpfCnpj: c.cpf_cnpj,
-            taAuto: c.titulo,
-            matricula: c.matricula,
-            nome: c.nome,
-            vencimento: c.vencimento,
-            atraso: c.atraso,
-            valorRecebido: c.valor_recebido,
-            plano: c.plano,
-            dataPromessaPagamento: c.data_pp,
-            dataVencimento: c.data_pgto,
-            comissao: c.comissao,
-            acao: c.acao,
-            sms: c.sms ? "SIM" : "NÃO",
-            ura: c.ura ? "SIM" : "NÃO",
-            envioNegociacao: c.envio_negociacao,
-            audioUrl: cpfcnpjOriginal ? `${API_BASE}/download/${cpfcnpjOriginal}` : undefined,
-            audioName: audioFileName,
-            audioUploadDate: undefined // Não há campo correspondente
-          };
-        });
-        setCustomers(mappedCustomers);
-        setFilteredCustomers(mappedCustomers);
-      })
-      .catch(() => {
-        setCustomers([]);
-        setFilteredCustomers([]);
-      });
+    // Por enquanto, deixar vazio ou buscar dados de outra fonte
+    // Os clientes agora ficam na tela Compliance
+    console.log('Tela Customers - clientes movidos para Compliance');
+    setCustomers([]);
+    setFilteredCustomers([]);
   }, []);
 
   useEffect(() => {

@@ -15,7 +15,10 @@ import {
   BarChart3,
   Volume2,
   Bell,
-  HelpCircle
+  HelpCircle,
+  XCircle,
+  AlertCircleIcon,
+  ClipboardList
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -43,6 +46,12 @@ const Sidebar = () => {
       icon: Users, 
       path: "/customers",
       badge: clientesCount > 0 ? clientesCount.toString() : null
+    },
+    { 
+      name: "Compliance", 
+      icon: ClipboardList, 
+      path: "/compliance",
+      badge: null
     }
     // Removido o item Áudios
   ];

@@ -35,32 +35,50 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    fetch('https://acessovipunimedgithubio-production.up.railway.app/api/clientes')
+    const API_BASE = import.meta.env.VITE_API_URL;
+    
+    // Buscar ocorrências para o dashboard
+    fetch(`${API_BASE}/api/ocorrencias`)
       .then(res => res.json())
-      .then(clientes => {
-        console.log('CLIENTES:', clientes); // Depuração
-        const totalClientes = clientes.length;
-        // Soma simples de valor_recebido
-        const totalReceitas = clientes.reduce((acc, c) => acc + (Number(c.valor_recebido) || 0), 0);
-        const clientesAtrasados = clientes.filter(c => Number(c.atraso) > 0).length;
-        const totalComissao = clientes.reduce((acc, c) => {
-          const valor = Number(c.comissao);
-          return acc + (isNaN(valor) ? 0 : valor);
-        }, 0);
-        const mediaAtraso = clientes.length
-          ? Math.round(clientes.reduce((acc, c) => acc + (Number(c.atraso) || 0), 0) / clientes.length)
-          : 0;
-        const clientesComAudio = clientes.filter(c => c.audio_id).length;
+      .then(ocorrencias => {
+        console.log('OCORRENCIAS:', ocorrencias); // Para depuração
 
+        // Exemplo de métricas (ajuste conforme os campos da sua tabela)
         setMetrics({
-          totalClientes,
-          totalReceitas,
-          clientesAtrasados,
-          totalComissao,
-          mediaAtraso,
-          taxaRecuperacao: 0, // implementar se desejar
-          clientesComAudio, // adicionar ao objeto
+          totalClientes: ocorrencias.length,
+          totalReceitas: ocorrencias.reduce((acc, o) => acc + (Number(o.valor_recebido) || 0), 0),
+          clientesAtrasados: ocorrencias.filter(o => Number(o.atraso) > 0).length,
+          totalComissao: ocorrencias.reduce((acc, o) => acc + (Number(o.comissao) || 0), 0),
+          mediaAtraso: ocorrencias.length
+            ? Math.round(ocorrencias.reduce((acc, o) => acc + (Number(o.atraso) || 0), 0) / ocorrencias.length)
+            : 0,
+          taxaRecuperacao: 0, // implemente se desejar
+          clientesComAudio: ocorrencias.filter(o => o.audio_id).length,
         });
+      })
+      .catch(err => {
+        console.error('Erro ao buscar ocorrências:', err);
+        // Fallback para clientes se ocorrências não existir
+        fetch(`${API_BASE}/api/clientes`)
+          .then(res => res.json())
+          .then(clientes => {
+            const totalClientes = clientes.length;
+            const totalReceitas = clientes.reduce((acc, c) => acc + (Number(c.valor_atual || c.valor_recebido) || 0), 0);
+            const clientesAtrasados = clientes.filter(c => Number(c.dias_atraso || c.atraso) > 0).length;
+            const mediaAtraso = clientes.length
+              ? Math.round(clientes.reduce((acc, c) => acc + (Number(c.dias_atraso || c.atraso) || 0), 0) / clientes.length)
+              : 0;
+
+            setMetrics({
+              totalClientes,
+              totalReceitas,
+              clientesAtrasados,
+              totalComissao: 0,
+              mediaAtraso,
+              taxaRecuperacao: 0,
+              clientesComAudio: 0,
+            });
+          });
       });
   }, []);
 
@@ -240,7 +258,7 @@ function AuditActionsCard() {
       JSON.stringify({ tipo: selected, melhoria })
     );
     try {
-      const res = await fetch("https://acessovipunimedgithubio-production.up.railway.app/api/audit", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/audit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: selected, melhoria })

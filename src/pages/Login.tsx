@@ -14,6 +14,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   // Redireciona para o dashboard se já estiver autenticado
   useEffect(() => {
@@ -28,7 +29,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch('https://acessovipunimedgithubio-production.up.railway.app/login', {
+      const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario: email, senha: password })
