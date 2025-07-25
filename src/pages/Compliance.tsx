@@ -147,21 +147,44 @@ const Compliance = () => {
   const totalEspecies = clientes.reduce((acc, c) => acc + c.especies.length, 0);
   const totalCodigos = clientes.reduce((acc, c) => acc + c.codigos.length, 0);
   
+  // Função para normalizar CPF/CNPJ (adicionar zeros à esquerda)
+  const normalizeCpfCnpj = (cpfCnpj) => {
+    if (!cpfCnpj) return "";
+    
+    // Remove todos os caracteres não numéricos
+    let clean = cpfCnpj.replace(/\D/g, "");
+    
+    // Adiciona zeros à esquerda se necessário
+    if (clean.length === 9) {
+      clean = "00" + clean; // Adiciona 2 zeros para CPF
+    } else if (clean.length === 10) {
+      clean = "0" + clean; // Adiciona 1 zero para CPF
+    } else if (clean.length === 12) {
+      clean = "00" + clean; // Adiciona 2 zeros para CNPJ
+    } else if (clean.length === 13) {
+      clean = "0" + clean; // Adiciona 1 zero para CNPJ
+    }
+    
+    return clean;
+  };
+
+
+
   // Função para formatar CPF/CNPJ
   const formatCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return "";
     
-    // Remove todos os caracteres não numéricos
-    const clean = cpfCnpj.replace(/\D/g, "");
+    // Primeiro normaliza o CPF/CNPJ
+    const normalized = normalizeCpfCnpj(cpfCnpj);
     
     // Formata CPF (11 dígitos)
-    if (clean.length === 11) {
-      return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    if (normalized.length === 11) {
+      return normalized.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
     }
     
     // Formata CNPJ (14 dígitos)
-    if (clean.length === 14) {
-      return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    if (normalized.length === 14) {
+      return normalized.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
     }
     
     // Se não for CPF nem CNPJ válido, retorna o valor original
@@ -171,21 +194,21 @@ const Compliance = () => {
   // Função para verificar se é CPF ou CNPJ válido
   const isValidCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return false;
-    const clean = cpfCnpj.replace(/\D/g, "");
-    return clean.length === 11 || clean.length === 14;
+    const normalized = normalizeCpfCnpj(cpfCnpj);
+    return normalized.length === 11 || normalized.length === 14;
   };
 
   // Função para verificar se existe PDF para o cliente
   const hasPdfNotification = (cliente) => {
     // Aqui você pode implementar a lógica para verificar se existe PDF
     // Por enquanto, vou simular que alguns clientes têm PDF
-    const cpfCnpj = cliente.cpf_cnpj.replace(/\D/g, "");
+    const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
     return cpfCnpj.length > 0; // Simulação: todos os clientes com CPF/CNPJ válido têm PDF
   };
 
   // Função para baixar PDF
   const downloadPdf = (cliente) => {
-    const cpfCnpj = cliente.cpf_cnpj.replace(/\D/g, "");
+    const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
     const fileName = `${cpfCnpj}_${cliente.nome_cliente.replace(/\s+/g, '_')}.pdf`;
     
     // Aqui você implementaria a lógica real de download
@@ -199,8 +222,8 @@ const Compliance = () => {
   };
 
   // Estatísticas de CPF/CNPJ
-  const cpfsCount = clientes.filter(c => c.cpf_cnpj.replace(/\D/g, "").length === 11).length;
-  const cnpjsCount = clientes.filter(c => c.cpf_cnpj.replace(/\D/g, "").length === 14).length;
+  const cpfsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 11).length;
+  const cnpjsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 14).length;
   
   // Estatísticas de PDFs
   const pdfsCount = clientes.filter(c => hasPdfNotification(c)).length;
@@ -420,19 +443,19 @@ const Compliance = () => {
                           >
                             <TableCell>
                               <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-sm font-semibold text-blue-700">
                                     {cliente.nome_cliente.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-semibold text-gray-900 text-sm">{cliente.nome_cliente}</p>
-                                  <div className="mt-1">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-900 text-sm truncate">{cliente.nome_cliente}</p>
+                                  <div className="mt-1 flex flex-wrap gap-1">
                                     {cliente.especies.map((especie, idx) => (
                                       <Badge 
                                         key={idx} 
                                         variant="secondary" 
-                                        className="bg-green-50 text-green-700 border-green-200 text-xs mr-1"
+                                        className="bg-green-50 text-green-700 border-green-200 text-xs"
                                       >
                                         {especie}
                                       </Badge>
@@ -442,25 +465,15 @@ const Compliance = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className={`font-mono text-sm px-3 py-2 rounded border ${
-                                isValidCpfCnpj(cliente.cpf_cnpj) 
-                                  ? 'bg-green-50 border-green-200' 
-                                  : 'bg-red-50 border-red-200'
-                              }`}>
-                                <div className="flex flex-col space-y-1">
-                                  <span className={`text-sm font-medium ${
-                                    isValidCpfCnpj(cliente.cpf_cnpj) 
-                                      ? 'text-green-700' 
-                                      : 'text-red-700'
-                                  }`}>
-                                    {formatCpfCnpj(cliente.cpf_cnpj)}
-                                  </span>
-                                  {isValidCpfCnpj(cliente.cpf_cnpj) && (
-                                    <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300 w-fit">
-                                      {cliente.cpf_cnpj.replace(/\D/g, "").length === 11 ? 'CPF' : 'CNPJ'}
-                                    </Badge>
-                                  )}
-                                </div>
+                              <div className="font-mono text-sm whitespace-nowrap">
+                                <span className="text-gray-900 font-medium">
+                                  {formatCpfCnpj(cliente.cpf_cnpj)}
+                                </span>
+                                {isValidCpfCnpj(cliente.cpf_cnpj) && (
+                                  <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-300 w-fit ml-2">
+                                    {normalizeCpfCnpj(cliente.cpf_cnpj).length === 11 ? 'CPF' : 'CNPJ'}
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
