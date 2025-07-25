@@ -229,7 +229,7 @@ const Compliance = () => {
   const pdfsCount = clientes.filter(c => hasPdfNotification(c)).length;
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar de Lotes */}
       <aside className="w-80 border-r bg-white shadow-sm">
         <div className="p-6 border-b">
@@ -299,9 +299,9 @@ const Compliance = () => {
       </aside>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 flex flex-col h-full">
         {selectedLote && selectedLoteData ? (
-          <div className="space-y-6">
+          <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-4">
@@ -335,32 +335,32 @@ const Compliance = () => {
                   </div>
                 </div>
                 
-                <div className="bg-green-50 rounded-lg p-4">
+                <div className="bg-blue-50 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-green-600" />
+                    <FileText className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm font-medium text-green-900">Total Contratos</p>
-                      <p className="text-2xl font-bold text-green-700">{totalContratos}</p>
+                      <p className="text-sm font-medium text-blue-900">Total Contratos</p>
+                      <p className="text-2xl font-bold text-blue-700">{totalContratos}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-purple-50 rounded-lg p-4">
+                <div className="bg-indigo-50 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-5 w-5 text-purple-600" />
+                    <CheckCircle className="h-5 w-5 text-indigo-600" />
                     <div>
-                      <p className="text-sm font-medium text-purple-900">Espécies</p>
-                      <p className="text-2xl font-bold text-purple-700">{totalEspecies}</p>
+                      <p className="text-sm font-medium text-indigo-900">Espécies</p>
+                      <p className="text-2xl font-bold text-indigo-700">{totalEspecies}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-orange-50 rounded-lg p-4">
+                <div className="bg-sky-50 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                    <AlertCircle className="h-5 w-5 text-sky-600" />
                     <div>
-                      <p className="text-sm font-medium text-orange-900">Códigos</p>
-                      <p className="text-2xl font-bold text-orange-700">{totalCodigos}</p>
+                      <p className="text-sm font-medium text-sky-900">Títulos</p>
+                      <p className="text-2xl font-bold text-sky-700">{totalCodigos}</p>
                     </div>
                   </div>
                 </div>
@@ -395,7 +395,7 @@ const Compliance = () => {
             </div>
 
             {/* Tabela de Clientes */}
-            <Card className="shadow-sm">
+            <Card className="shadow-sm flex-1 flex flex-col">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">
@@ -411,19 +411,19 @@ const Compliance = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
+              <CardContent className="flex-1 flex flex-col">
+                <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
+                  <Table className="flex-1">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead className="font-semibold text-gray-900">Cliente & Espécie</TableHead>
                         <TableHead className="font-semibold text-gray-900">CPF/CNPJ</TableHead>
                         <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Códigos</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
                         <TableHead className="font-semibold text-gray-900">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="flex-1">
                       {loadingClientes ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-12">
@@ -455,7 +455,7 @@ const Compliance = () => {
                                       <Badge 
                                         key={idx} 
                                         variant="secondary" 
-                                        className="bg-green-50 text-green-700 border-green-200 text-xs"
+                                        className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
                                       >
                                         {especie}
                                       </Badge>
@@ -469,11 +469,6 @@ const Compliance = () => {
                                 <span className="text-gray-900 font-medium">
                                   {formatCpfCnpj(cliente.cpf_cnpj)}
                                 </span>
-                                {isValidCpfCnpj(cliente.cpf_cnpj) && (
-                                  <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-300 w-fit ml-2">
-                                    {normalizeCpfCnpj(cliente.cpf_cnpj).length === 11 ? 'CPF' : 'CNPJ'}
-                                  </Badge>
-                                )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -495,7 +490,7 @@ const Compliance = () => {
                                   <Badge 
                                     key={idx} 
                                     variant="secondary" 
-                                    className="bg-purple-50 text-purple-700 border-purple-200 text-sm"
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-sm"
                                   >
                                     {codigo}
                                   </Badge>
@@ -509,10 +504,10 @@ const Compliance = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => downloadPdf(cliente)}
-                                    className="h-8 w-8 p-0 bg-green-50 border-green-200 hover:bg-green-100"
+                                    className="h-8 w-8 p-0 bg-blue-50 border-blue-200 hover:bg-blue-100"
                                     title="Baixar Notificação PDF"
                                   >
-                                    <FileDown className="h-4 w-4 text-green-600" />
+                                    <FileDown className="h-4 w-4 text-blue-600" />
                                   </Button>
                                 ) : (
                                   <div className="h-8 w-8 bg-gray-100 rounded border flex items-center justify-center">
