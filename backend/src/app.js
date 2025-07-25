@@ -76,6 +76,74 @@ app.get('/api/ocorrencias', async (req, res) => {
   }
 });
 
+// API para buscar mídia de uma ocorrência específica
+app.get('/api/ocorrencias/:id/media', async (req, res) => {
+  let pool, server;
+  try {
+    const { id } = req.params;
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    const [rows] = await pool.query(`
+      SELECT 
+        id,
+        ocorrencia_id,
+        media_type,
+        file_name,
+        file_path,
+        mime_type,
+        file_size_bytes,
+        uploaded_at
+      FROM media 
+      WHERE ocorrencia_id = ?
+      ORDER BY uploaded_at DESC
+    `, [id]);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar mídia da ocorrência:', error);
+    res.status(500).json({ error: 'Erro ao buscar mídia', details: error.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
+  }
+});
+
+// API para download de mídia
+app.get('/api/media/download/:fileName', async (req, res) => {
+  let pool, server;
+  try {
+    const { fileName } = req.params;
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    const [rows] = await pool.query(`
+      SELECT file_path, mime_type 
+      FROM media 
+      WHERE file_name = ?
+    `, [fileName]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+    
+    const filePath = rows[0].file_path;
+    const mimeType = rows[0].mime_type || 'application/octet-stream';
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    }
+    
+    res.setHeader('Content-Type', mimeType);
+    res.download(filePath);
+  } catch (error) {
+    console.error('Erro ao fazer download:', error);
+    res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
+  }
+});
+
 // Nova rota para todos os clientes (similar ao modelo Python)
 app.get('/api/clientes', async (req, res) => {
   let pool, server;
@@ -220,100 +288,129 @@ app.post('/api/audit', async (req, res) => {
 });
 
 // Endpoint para listar áudios de um cliente
-app.get('/api/audios/:cpf', (req, res) => {
+app.get('/api/audios/:cpf', async (req, res) => {
+  let pool, server;
   try {
     const { cpf } = req.params;
-    const audiosDir = path.join(process.cwd(), '..', 'data', 'audios');
-    
     console.log('🔍 Buscando áudios para CPF:', cpf);
-    console.log('📁 Diretório de áudios:', audiosDir);
     
-    if (!fs.existsSync(audiosDir)) {
-      console.log('❌ Diretório de áudios não existe');
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Primeiro, encontrar a ocorrência pelo CPF
+    const [ocorrencias] = await pool.query(
+      'SELECT id FROM ocorrencia WHERE cpf_cnpj = ? LIMIT 1',
+      [cpf]
+    );
+    
+    if (ocorrencias.length === 0) {
+      console.log('❌ Nenhuma ocorrência encontrada para CPF:', cpf);
       return res.json([]);
     }
-
-    const files = fs.readdirSync(audiosDir);
-    console.log('📄 Arquivos encontrados no diretório de áudios:', files);
     
-    const audios = [];
-    // Normalização condicional para CNPJ
-    let cpfOuCnpjBusca = cpf;
-    if (cpf.replace(/\D/g, '').length === 14) {
-      cpfOuCnpjBusca = cpf.replace(/[.-/]/g, '').replace(/\s/g, '');
-    }
-
-    files.forEach(file => {
-      // Pega o prefixo do arquivo até o primeiro underline
-      const filePrefix = file.split('_')[0];
-      const filePrefixBusca = filePrefix.replace(/[.-/]/g, '').replace(/\s/g, '');
-      const cpfOuCnpjBuscaNormalizado = cpf.replace(/[.-/]/g, '').replace(/\s/g, '');
-      if (filePrefixBusca === cpfOuCnpjBuscaNormalizado) {
-        const filePath = path.join(audiosDir, file);
-        const stats = fs.statSync(filePath);
-        const extension = path.extname(file);
-        
-        // Filtro por extensões de áudio
-        const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.aac'];
-        if (audioExtensions.includes(extension.toLowerCase())) {
-          
-          // Determina tipo MIME do áudio
-          let fileType = 'audio/mpeg';
-          switch (extension.toLowerCase()) {
-            case '.mp3': fileType = 'audio/mpeg'; break;
-            case '.wav': fileType = 'audio/wav'; break;
-            case '.m4a': fileType = 'audio/mp4'; break;
-            case '.ogg': fileType = 'audio/ogg'; break;
-            case '.aac': fileType = 'audio/aac'; break;
-          }
-
-          // Monta objeto do áudio
-          audios.push({
-            id: file,
-            fileName: file,
-            originalName: file.split('_').slice(1).join('_'), // Remove CPF do nome
-            fileSize: stats.size,
-            uploadDate: stats.mtime.toISOString(),
-            description: '',
-            fileType: fileType,
-            duration: null
-          });
-        }
-      }
-    });
-
-    console.log(`📋 Total de áudios encontrados: ${audios.length}`);
+    const ocorrenciaId = ocorrencias[0].id;
+    console.log('✅ Ocorrência encontrada, ID:', ocorrenciaId);
+    
+    // Buscar mídia de áudio para essa ocorrência
+    const [mediaRows] = await pool.query(`
+      SELECT 
+        id,
+        ocorrencia_id,
+        media_type,
+        file_name,
+        file_path,
+        mime_type,
+        file_size_bytes,
+        uploaded_at
+      FROM media 
+      WHERE ocorrencia_id = ? AND media_type = 'audio'
+      ORDER BY uploaded_at DESC
+    `, [ocorrenciaId]);
+    
+    console.log(`📋 Total de áudios encontrados: ${mediaRows.length}`);
+    
+    // Transformar para o formato esperado pelo frontend
+    const audios = mediaRows.map(row => ({
+      id: String(row.id),
+      fileName: row.file_name,
+      originalName: row.file_name,
+      fileSize: row.file_size_bytes || 0,
+      uploadDate: row.uploaded_at,
+      description: '',
+      fileType: row.mime_type || 'audio/mpeg',
+      duration: null
+    }));
+    
     res.json(audios);
   } catch (err) {
     console.error('❌ Erro ao listar áudios:', err);
-    res.status(200).json([]); // Sempre retorna array vazio em caso de erro
+    res.status(500).json({ error: 'Erro ao listar áudios', details: err.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
   }
 });
 
 // Endpoint para download de áudio
-app.get('/api/audios/download/:fileName', (req, res) => {
+app.get('/api/audios/download/:fileName', async (req, res) => {
+  let pool, server;
   try {
     const { fileName } = req.params;
-    const filePath = path.join(process.cwd(), '..', 'data', 'audios', fileName);
-
-    if (!fs.existsSync(filePath)) {
+    console.log('🔍 Buscando arquivo para download:', fileName);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    const [mediaRows] = await pool.query(`
+      SELECT file_path, mime_type 
+      FROM media 
+      WHERE file_name = ? AND media_type = 'audio'
+    `, [fileName]);
+    
+    if (mediaRows.length === 0) {
       return res.status(404).json({ error: 'Arquivo não encontrado' });
     }
-
+    
+    const filePath = mediaRows[0].file_path;
+    const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    }
+    
+    res.setHeader('Content-Type', mimeType);
     res.download(filePath);
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao fazer download do áudio', details: err.message });
+    console.error('❌ Erro ao fazer download:', err);
+    res.status(500).json({ error: 'Erro ao fazer download', details: err.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
   }
 });
 
 // Endpoint para streaming de áudio (reprodução)
-app.get('/api/audios/stream/:fileName', (req, res) => {
+app.get('/api/audios/stream/:fileName', async (req, res) => {
+  let pool, server;
   try {
     const { fileName } = req.params;
-    const filePath = path.join(process.cwd(), '..', 'data', 'audios', fileName);
-
-    if (!fs.existsSync(filePath)) {
+    console.log('🔍 Buscando arquivo para streaming:', fileName);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    const [mediaRows] = await pool.query(`
+      SELECT file_path, mime_type 
+      FROM media 
+      WHERE file_name = ? AND media_type = 'audio'
+    `, [fileName]);
+    
+    if (mediaRows.length === 0) {
       return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+    
+    const filePath = mediaRows[0].file_path;
+    const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
     }
 
     const stat = fs.statSync(filePath);
@@ -331,7 +428,7 @@ app.get('/api/audios/stream/:fileName', (req, res) => {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': mimeType,
       };
       res.writeHead(206, head);
       file.pipe(res);
@@ -339,13 +436,17 @@ app.get('/api/audios/stream/:fileName', (req, res) => {
       // Streaming completo
       const head = {
         'Content-Length': fileSize,
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': mimeType,
       };
       res.writeHead(200, head);
       fs.createReadStream(filePath).pipe(res);
     }
   } catch (err) {
+    console.error('❌ Erro ao fazer streaming:', err);
     res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: err.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
   }
 });
 

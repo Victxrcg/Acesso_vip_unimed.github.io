@@ -5,16 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Search, 
-  Filter, 
+ 
   Download, 
   Play, 
   Pause, 
-  Volume2,
   Calendar,
   DollarSign,
   Clock,
@@ -45,12 +43,8 @@ const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [orderBy, setOrderBy] = useState("recent");
   const [acaoFilter, setAcaoFilter] = useState("all");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isPlaying, setIsPlaying] = useState<number | null>(null);
   const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -136,20 +130,11 @@ const Customers = () => {
       );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(customer => {
-        if (statusFilter === "overdue") return customer.atraso > 0;
-        if (statusFilter === "withAudio") return customer.audioUrl;
-        if (statusFilter === "upToDate") return customer.atraso <= 0;
-        return true;
-      });
-    }
-
     if (acaoFilter !== "all") {
       filtered = filtered.filter(customer => customer.acao && customer.acao.toLowerCase() === acaoFilter);
     }
 
-    // Ordenação por prioridade: ACD > URA > outros, depois por dataVencimento
+    // Ordenação por prioridade: ACD > URA > outros
     filtered = filtered.slice().sort((a, b) => {
       const getPriority = (acao: string) => {
         if (!acao) return 2;
@@ -160,20 +145,12 @@ const Customers = () => {
       };
       const priorityA = getPriority(a.acao);
       const priorityB = getPriority(b.acao);
-      if (priorityA !== priorityB) return priorityA - priorityB;
-      // Se mesma prioridade, ordenar por dataVencimento (ou outro campo de data)
-      const dateA = a.dataVencimento ? new Date(a.dataVencimento.split('/').reverse().join('-')) : new Date(0);
-      const dateB = b.dataVencimento ? new Date(b.dataVencimento.split('/').reverse().join('-')) : new Date(0);
-      if (orderBy === "recent") {
-        return dateB.getTime() - dateA.getTime();
-      } else {
-        return dateA.getTime() - dateB.getTime();
-      }
+      return priorityA - priorityB;
     });
 
     setFilteredCustomers(filtered);
     setCurrentPage(1); // Sempre volta para a primeira página ao filtrar
-  }, [customers, searchTerm, statusFilter, orderBy, acaoFilter]);
+  }, [customers, searchTerm, acaoFilter]);
 
   // Paginação: calcular clientes da página atual
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
@@ -190,47 +167,9 @@ const Customers = () => {
     return new Date(dateString.split('/').reverse().join('-')).toLocaleDateString('pt-BR');
   };
 
-  const getStatusBadge = (atraso: number) => {
-    if (atraso > 60) {
-      return <Badge variant="destructive">Alto Atraso</Badge>;
-    } else if (atraso > 30) {
-      return <Badge variant="secondary" className="bg-warning text-warning-foreground">Médio Atraso</Badge>;
-    } else if (atraso > 0) {
-      return <Badge variant="outline">Baixo Atraso</Badge>;
-    } else {
-      return <Badge variant="default" className="bg-success text-success-foreground">Em Dia</Badge>;
-    }
-  };
 
-  const handleAudioUpload = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsAudioDialogOpen(true);
-  };
 
-  const handleAudioSave = () => {
-    if (selectedCustomer && audioFile) {
-      const updatedCustomers = customers.map(customer =>
-        customer.id === selectedCustomer.id
-          ? {
-              ...customer,
-              audioUrl: URL.createObjectURL(audioFile),
-              audioName: audioFile.name,
-              audioUploadDate: new Date().toLocaleDateString('pt-BR')
-            }
-          : customer
-      );
 
-      setCustomers(updatedCustomers);
-      setAudioFile(null);
-      setIsAudioDialogOpen(false);
-      setSelectedCustomer(null);
-
-      toast({
-        title: "Áudio salvo com sucesso!",
-        description: `Áudio associado ao cliente ${selectedCustomer.nome}`,
-      });
-    }
-  };
 
   const handlePlayPause = (customer: Customer) => {
     const ref = audioRefs.current[customer.id];
@@ -415,30 +354,6 @@ const Customers = () => {
                 />
               </div>
             </div>
-            {/* Filtro de status */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="overdue">Em Atraso</SelectItem>
-                <SelectItem value="upToDate">Em Dia</SelectItem>
-                <SelectItem value="withAudio">Com Áudio</SelectItem>
-              </SelectContent>
-            </Select>
-            {/* Filtro de ordenação */}
-            <Select value={orderBy} onValueChange={setOrderBy}>
-              <SelectTrigger className="w-full sm:w-44">
-              <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Ordenar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Selecionar</SelectItem>
-                <SelectItem value="recent">Mais recentes</SelectItem>
-                <SelectItem value="oldest">Mais antigos</SelectItem>
-              </SelectContent>
-            </Select>
             {/* Filtro por ação */}
             <Select value={acaoFilter} onValueChange={setAcaoFilter}>
               <SelectTrigger className="w-full sm:w-44">
@@ -467,15 +382,11 @@ const Customers = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Título</TableHead>
                   <TableHead>CPF/CNPJ</TableHead>
                   <TableHead>Credor</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Atraso</TableHead>
-                  <TableHead>Comissão</TableHead>
-                  <TableHead>Data Vencimento</TableHead>
-                  <TableHead>Última ação</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Data da Ação</TableHead>
+                  <TableHead>Última Ação</TableHead>
                   <TableHead className="whitespace-nowrap">
                     Áudios
                     <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
@@ -502,28 +413,11 @@ const Customers = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{customer.titulo}</TableCell>
                     <TableCell className="font-medium">{customer.cpfCnpj}</TableCell>
                     <TableCell>{customer.credor}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(customer.valorRecebido)}</TableCell>
-                    <TableCell>
-                      <Badge variant={customer.atraso > 0 ? "destructive" : "secondary"}>
-                        {customer.atraso} dias
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(customer.comissao)}</TableCell>
-                    <TableCell>{customer.dataVencimento}</TableCell>
+                    <TableCell>{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
                     <TableCell>{customer.acao}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {customer.smsEnviado && (
-                          <Badge variant="outline" className="text-xs">SMS</Badge>
-                        )}
-                        {customer.uraEnviado && (
-                          <Badge variant="outline" className="text-xs">URA</Badge>
-                        )}
-                      </div>
-                    </TableCell>
                     <TableCell>
                       <Button
                         type="button"
@@ -576,76 +470,16 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog para Upload de Áudio */}
-      <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Associar Áudio ao Cliente</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer-info">Cliente</Label>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="font-medium">{selectedCustomer?.nome}</div>
-                <div className="text-sm text-muted-foreground">
-                  CPF: {selectedCustomer?.cpfCnpj}
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="audio-file">Arquivo de Áudio</Label>
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="audio-file"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Volume2 className="w-8 h-8 mb-3 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
-                    </p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A (MAX. 10MB)</p>
-                  </div>
-                  <input
-                    id="audio-file"
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-              {audioFile && (
-                <div className="text-sm text-muted-foreground">
-                  Arquivo selecionado: {audioFile.name}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsAudioDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAudioSave}
-                disabled={!audioFile}
-              >
-                Salvar Áudio
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* 🎵 MODAL DE ÁUDIOS */}
       <Dialog open={isAudiosDialogOpen} onOpenChange={setIsAudiosDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gerenciar Áudios - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription>
+              Visualize, reproduza e faça download dos áudios associados a este cliente.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -679,7 +513,7 @@ const Customers = () => {
               {audios.length === 0 ? (
                 // 📭 Mensagem quando não há áudios
                 <div className="text-center py-8 text-muted-foreground">
-                  <Volume2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <FileAudio className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Nenhum áudio encontrado</p>
                   <p className="text-sm">Não há áudios disponíveis para este cliente</p>
                 </div>
@@ -770,6 +604,9 @@ const Customers = () => {
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gerenciar Anexos - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription>
+              Visualize e faça download dos anexos associados a este cliente.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
