@@ -7,8 +7,12 @@ require('dotenv').config();
 const lotesRoutes = require('./routes/lotesRoutes');
 const clientesRoutes = require('./routes/clientesRoutes');
 const allowedOrigins = [
-
-    'http://localhost:5175', // Adicione esta linha
+    'http://localhost:5175',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://172.23.96.1:5175',
+    'http://10.100.20.241:5175',
+    'https://acessovipunimedgithubio-production.up.railway.app'
   ];
 // const pdfsRoutes = require('./routes/pdfsRoutes');
 const bcrypt = require('bcrypt');
@@ -17,15 +21,33 @@ const getDbPoolWithTunnel = require('./lib/db-ssh');
 const app = express();
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('🌐 Requisição de origem:', origin);
+    
     // Permite requisições sem origem (ex: ferramentas internas, curl, etc)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ Permitindo requisição sem origem');
+      return callback(null, true);
+    }
+    
+    // Durante desenvolvimento, permitir qualquer origem local
+    if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('172.23.96.1') || origin.includes('10.100.20.241')) {
+      console.log('✅ Permitindo origem local:', origin);
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('❌ Origem não permitida:', origin);
       const msg = 'A origem não é permitida pelo CORS.';
       return callback(new Error(msg), false);
     }
+    
+    console.log('✅ Origem permitida:', origin);
     return callback(null, true);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Range'],
+  exposedHeaders: ['Content-Disposition', 'Content-Length', 'Content-Range', 'Accept-Ranges']
 }));
 app.use(express.json());
 
@@ -366,22 +388,48 @@ app.get('/api/audios/download/:fileName', async (req, res) => {
     `, [fileName]);
     
     if (mediaRows.length === 0) {
+      console.log('❌ Arquivo não encontrado no banco:', fileName);
       return res.status(404).json({ error: 'Arquivo não encontrado' });
     }
     
     const filePath = mediaRows[0].file_path;
     const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
     
+    console.log('📁 Caminho do arquivo:', filePath);
+    console.log('📄 Tipo MIME:', mimeType);
+    
     if (!fs.existsSync(filePath)) {
+      console.log('❌ Arquivo não encontrado no sistema:', filePath);
       return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
     }
     
+    console.log('✅ Arquivo encontrado, iniciando download...');
+    
+    // Configurar headers para download
     res.setHeader('Content-Type', mimeType);
-    res.download(filePath);
-  } catch (err) {
-    console.error('❌ Erro ao fazer download:', err);
-    res.status(500).json({ error: 'Erro ao fazer download', details: err.message });
-  } finally {
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    
+    // Usar stream para arquivos grandes
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    // Fechar conexões após o download
+    fileStream.on('end', () => {
+      console.log('✅ Download concluído para:', fileName);
+      if (pool) pool.end();
+      if (server) server.close();
+    });
+    
+    fileStream.on('error', (error) => {
+      console.error('❌ Erro no stream do arquivo:', error);
+      res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
+      if (pool) pool.end();
+      if (server) server.close();
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao fazer download:', error);
+    res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
     if (pool) await pool.end();
     if (server) server.close();
   }
@@ -403,19 +451,31 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
     `, [fileName]);
     
     if (mediaRows.length === 0) {
+      console.log('❌ Arquivo não encontrado no banco:', fileName);
       return res.status(404).json({ error: 'Arquivo não encontrado' });
     }
     
     const filePath = mediaRows[0].file_path;
     const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
     
+    console.log('📁 Caminho do arquivo:', filePath);
+    console.log('📄 Tipo MIME:', mimeType);
+    
     if (!fs.existsSync(filePath)) {
+      console.log('❌ Arquivo não encontrado no sistema:', filePath);
       return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
     }
+
+    console.log('✅ Arquivo encontrado, iniciando streaming...');
 
     const stat = fs.statSync(filePath);
     const fileSize = stat.size;
     const range = req.headers.range;
+
+    // Configurar headers CORS para streaming
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Range');
 
     if (range) {
       // Suporte a Range Requests (streaming)
@@ -423,6 +483,9 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
       const chunksize = (end-start)+1;
+      
+      console.log(`📊 Streaming range: ${start}-${end}/${fileSize} (${chunksize} bytes)`);
+      
       const file = fs.createReadStream(filePath, {start, end});
       const head = {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
@@ -432,19 +495,49 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
       };
       res.writeHead(206, head);
       file.pipe(res);
+      
+      // Fechar conexões após o streaming
+      file.on('end', () => {
+        console.log('✅ Streaming concluído para:', fileName);
+        if (pool) pool.end();
+        if (server) server.close();
+      });
+      
+      file.on('error', (error) => {
+        console.error('❌ Erro no stream do arquivo:', error);
+        if (pool) pool.end();
+        if (server) server.close();
+      });
     } else {
       // Streaming completo
+      console.log(`📊 Streaming completo: ${fileSize} bytes`);
+      
       const head = {
         'Content-Length': fileSize,
         'Content-Type': mimeType,
+        'Accept-Ranges': 'bytes',
       };
       res.writeHead(200, head);
-      fs.createReadStream(filePath).pipe(res);
+      
+      const file = fs.createReadStream(filePath);
+      file.pipe(res);
+      
+      // Fechar conexões após o streaming
+      file.on('end', () => {
+        console.log('✅ Streaming completo concluído para:', fileName);
+        if (pool) pool.end();
+        if (server) server.close();
+      });
+      
+      file.on('error', (error) => {
+        console.error('❌ Erro no stream do arquivo:', error);
+        if (pool) pool.end();
+        if (server) server.close();
+      });
     }
-  } catch (err) {
-    console.error('❌ Erro ao fazer streaming:', err);
-    res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: err.message });
-  } finally {
+  } catch (error) {
+    console.error('❌ Erro ao fazer streaming:', error);
+    res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: error.message });
     if (pool) await pool.end();
     if (server) server.close();
   }
@@ -452,6 +545,64 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('API AuditaAI rodando!');
+});
+
+// Rota de teste para verificar CORS
+app.get('/api/cors-test', (req, res) => {
+  console.log('🧪 Teste de CORS solicitado');
+  console.log('🌐 Origem:', req.headers.origin);
+  console.log('📋 Headers:', req.headers);
+  
+  res.json({ 
+    message: 'CORS funcionando!', 
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']
+  });
+});
+
+// Rota de teste para verificar áudios
+app.get('/api/audios/test/:fileName', async (req, res) => {
+  let pool, server;
+  try {
+    const { fileName } = req.params;
+    console.log('🧪 Teste de áudio para:', fileName);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    const [mediaRows] = await pool.query(`
+      SELECT file_path, mime_type, file_size_bytes 
+      FROM media 
+      WHERE file_name = ? AND media_type = 'audio'
+    `, [fileName]);
+    
+    if (mediaRows.length === 0) {
+      return res.json({ 
+        found: false, 
+        message: 'Arquivo não encontrado no banco',
+        fileName 
+      });
+    }
+    
+    const filePath = mediaRows[0].file_path;
+    const exists = fs.existsSync(filePath);
+    
+    res.json({
+      found: true,
+      exists: exists,
+      fileName,
+      filePath,
+      mimeType: mediaRows[0].mime_type,
+      fileSize: mediaRows[0].file_size_bytes,
+      message: exists ? 'Arquivo encontrado e acessível' : 'Arquivo não encontrado no sistema'
+    });
+  } catch (error) {
+    console.error('❌ Erro no teste:', error);
+    res.status(500).json({ error: 'Erro no teste', details: error.message });
+  } finally {
+    if (pool) await pool.end();
+    if (server) server.close();
+  }
 });
 
 const PORT = process.env.PORT || 3001;
