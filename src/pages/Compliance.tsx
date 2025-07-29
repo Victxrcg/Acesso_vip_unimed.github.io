@@ -212,18 +212,17 @@ const Compliance = () => {
   // Função para buscar anexos de um cliente
   const buscarAnexos = async (cliente) => {
     const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
-    const numeroContrato = cliente.numero_contrato;
     
-    if (!cpfCnpj || !numeroContrato) return;
+    if (!cpfCnpj) return;
     
     // Marcar como carregando
     setLoadingAnexos(prev => ({ ...prev, [cpfCnpj]: true }));
     
     try {
-      console.log('🔍 Buscando anexos para contrato:', numeroContrato);
+      console.log('🔍 Buscando anexos para CPF:', cpfCnpj);
       
-      // Buscar anexos usando o numero_contrato como relação
-      const anexosRes = await fetch(`${API_BASE}/api/anexos/contrato/${numeroContrato}`);
+      // Buscar anexos usando o CPF
+      const anexosRes = await fetch(`${API_BASE}/api/anexos/${cpfCnpj}`);
       const anexosData = await anexosRes.json();
       
       console.log('✅ Anexos encontrados:', anexosData);
@@ -592,41 +591,24 @@ const Compliance = () => {
                                     <span className="text-xs text-gray-500">Carregando...</span>
                                   </div>
                                 ) : hasAnexos(cliente) ? (
-                                  <div className="flex flex-col space-y-1">
-                                    <div className="text-xs text-gray-600 font-medium">
-                                      Contrato: {cliente.numero_contrato}
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                      {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
-                                        <Button
-                                          key={idx}
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => downloadAnexo(anexo.fileName)}
-                                          className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                          title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
-                                        >
-                                          {getFileIcon(anexo.fileName)}
-                                          <span className="ml-1 truncate max-w-20">
-                                            {anexo.fileName.split('.').pop()?.toUpperCase()}
-                                          </span>
-                                        </Button>
-                                      ))}
-                                    </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
+                                      <Button
+                                        key={idx}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => downloadAnexo(anexo.fileName)}
+                                        className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
+                                        title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                      >
+                                        {getFileIcon(anexo.fileName)}
+                                        <span className="ml-1 truncate max-w-20">
+                                          {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                        </span>
+                                      </Button>
+                                    ))}
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col space-y-1">
-                                    <div className="text-xs text-gray-600 font-medium">
-                                      Contrato: {cliente.numero_contrato}
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <Paperclip className="h-4 w-4 text-gray-400" />
-                                      <span className="text-xs text-gray-500">Sem anexos</span>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {!loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] && !hasAnexos(cliente) && (
                                   <Button
                                     variant="outline"
                                     size="sm"

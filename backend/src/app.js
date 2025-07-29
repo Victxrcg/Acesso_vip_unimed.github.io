@@ -376,10 +376,14 @@ app.get('/api/audios/:cpf', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Primeiro, encontrar a ocorrência pelo CPF
+    // Remover zeros à esquerda do CPF para buscar no banco
+    const cpfLimpo = cpf.replace(/^0+/, '');
+    console.log('🔧 CPF limpo (sem zeros à esquerda):', cpfLimpo);
+    
+    // Primeiro, encontrar a ocorrência pelo CPF (com e sem zeros à esquerda)
     const [ocorrencias] = await pool.query(
-      'SELECT id FROM ocorrencia WHERE cpf_cnpj = ? LIMIT 1',
-      [cpf]
+      'SELECT id FROM ocorrencia WHERE cpf_cnpj = ? OR cpf_cnpj = ? LIMIT 1',
+      [cpf, cpfLimpo]
     );
     
     if (ocorrencias.length === 0) {
@@ -437,21 +441,25 @@ app.get('/api/anexos/:cpf', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Primeiro, encontrar o cliente pelo CPF para obter o numero_contrato
+    // Remover zeros à esquerda do CPF para buscar no banco
+    const cpfLimpo = cpf.replace(/^0+/, '');
+    console.log('🔧 CPF limpo (sem zeros à esquerda):', cpfLimpo);
+    
+    // Primeiro, encontrar o cliente pelo CPF (com e sem zeros à esquerda)
     const [clientes] = await pool.query(
-      'SELECT id, numero_contrato, nome_cliente FROM clientes_cancelamentos WHERE cpf_cnpj = ? LIMIT 1',
-      [cpf]
+      'SELECT id, numero_contrato, nome_cliente, cpf_cnpj FROM clientes_cancelamentos WHERE cpf_cnpj = ? OR cpf_cnpj = ? LIMIT 1',
+      [cpf, cpfLimpo]
     );
     
     if (clientes.length === 0) {
-      console.log('❌ Nenhum cliente encontrado para CPF:', cpf);
+      console.log('❌ Nenhum cliente encontrado para CPF:', cpf, 'ou CPF limpo:', cpfLimpo);
       return res.json([]);
     }
     
     const cliente = clientes[0];
     console.log('✅ Cliente encontrado, ID:', cliente.id, 'Contrato:', cliente.numero_contrato);
     
-    // Buscar anexos (PDFs) usando o numero_contrato como relação
+    // Buscar anexos (PDFs) diretamente pelo CPF
     const [anexosRows] = await pool.query(`
       SELECT 
         cp.id,
@@ -462,15 +470,17 @@ app.get('/api/anexos/:cpf', async (req, res) => {
         cp.file_size,
         cp.uploaded_at,
         cp.tipo,
+        cp.cpf,
         cc.numero_contrato,
-        cc.nome_cliente
+        cc.nome_cliente,
+        cc.cpf_cnpj
       FROM cancelamento_pdfs cp
-      INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
-      WHERE cc.numero_contrato = ?
+      LEFT JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      WHERE cp.cpf = ?
       ORDER BY cp.uploaded_at DESC
-    `, [cliente.numero_contrato]);
+    `, [cpfLimpo]);
     
-    console.log(`📋 Total de anexos encontrados para contrato ${cliente.numero_contrato}: ${anexosRows.length}`);
+    console.log(`📋 Total de anexos encontrados para CPF ${cpfLimpo}: ${anexosRows.length}`);
     
     // Transformar para o formato esperado pelo frontend
     const anexos = anexosRows.map(row => ({
@@ -532,12 +542,12 @@ app.get('/api/anexos/contrato/:numeroContrato', async (req, res) => {
       originalName: row.file_name,
       fileSize: row.file_size || 0,
       uploadDate: row.uploaded_at,
-      description: `Tipo: ${row.tipo} | Contrato: ${row.numero_contrato} | Cliente: ${row.nome_cliente}`,
+      description: `Tipo: ${row.tipo} | CPF: ${row.cpf} | Contrato: ${row.numero_contrato || 'N/A'} | Cliente: ${row.nome_cliente || 'N/A'}`,
       fileType: row.mime_type || 'application/pdf',
       tipo: row.tipo,
       numeroContrato: row.numero_contrato,
       nomeCliente: row.nome_cliente,
-      cpfCnpj: row.cpf_cnpj
+      cpfCnpj: row.cpf
     }));
     
     res.json(anexos);
@@ -796,12 +806,16 @@ app.get('/api/debug/anexos/:cpf', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // 1. Verificar se o cliente existe
+    // Remover zeros à esquerda do CPF para buscar no banco
+    const cpfLimpo = cpf.replace(/^0+/, '');
+    console.log('🔧 CPF limpo (sem zeros à esquerda):', cpfLimpo);
+    
+    // 1. Verificar se o cliente existe (com e sem zeros à esquerda)
     const [clientes] = await pool.query(`
       SELECT id, numero_contrato, nome_cliente, cpf_cnpj 
       FROM clientes_cancelamentos 
-      WHERE cpf_cnpj = ?
-    `, [cpf]);
+      WHERE cpf_cnpj = ? OR cpf_cnpj = ?
+    `, [cpf, cpfLimpo]);
     
     console.log('📋 Clientes encontrados:', clientes.length);
     
@@ -817,8 +831,30 @@ app.get('/api/debug/anexos/:cpf', async (req, res) => {
     const cliente = clientes[0];
     console.log('✅ Cliente encontrado:', cliente);
     
-    // 2. Verificar anexos usando numero_contrato como relação
-    const [anexos] = await pool.query(`
+    // 2. Verificar anexos diretamente pelo CPF
+    const [anexosPorCpf] = await pool.query(`
+      SELECT 
+        id,
+        cancelamento_id,
+        cpf,
+        file_name,
+        file_path,
+        mime_type,
+        file_size,
+        uploaded_at,
+        tipo,
+        CASE 
+          WHEN file_content IS NOT NULL THEN 'SIM'
+          ELSE 'NÃO'
+        END as tem_conteudo_binario
+      FROM cancelamento_pdfs 
+      WHERE cpf = ?
+    `, [cpfLimpo]);
+    
+    console.log('📋 Anexos encontrados diretamente para CPF', cpfLimpo, ':', anexosPorCpf.length);
+    
+    // 3. Verificar anexos usando numero_contrato como relação
+    const [anexosPorContrato] = await pool.query(`
       SELECT 
         cp.id,
         cp.cancelamento_id,
@@ -839,9 +875,18 @@ app.get('/api/debug/anexos/:cpf', async (req, res) => {
       WHERE cc.numero_contrato = ?
     `, [cliente.numero_contrato]);
     
-    console.log('📋 Anexos encontrados para contrato', cliente.numero_contrato, ':', anexos.length);
+    console.log('📋 Anexos encontrados para contrato', cliente.numero_contrato, ':', anexosPorContrato.length);
     
-    // 3. Verificar estrutura da tabela cancelamento_pdfs
+    // 4. Verificar quantos clientes têm o mesmo numero_contrato
+    const [clientesMesmoContrato] = await pool.query(`
+      SELECT id, cpf_cnpj, nome_cliente, numero_contrato
+      FROM clientes_cancelamentos 
+      WHERE numero_contrato = ?
+    `, [cliente.numero_contrato]);
+    
+    console.log('📋 Clientes com mesmo contrato', cliente.numero_contrato, ':', clientesMesmoContrato.length);
+    
+    // 5. Verificar estrutura da tabela cancelamento_pdfs
     const [columns] = await pool.query(`
       DESCRIBE cancelamento_pdfs
     `);
@@ -854,10 +899,14 @@ app.get('/api/debug/anexos/:cpf', async (req, res) => {
         nome_cliente: cliente.nome_cliente,
         cpf_cnpj: cliente.cpf_cnpj
       },
-      anexos: anexos,
-      total_anexos: anexos.length,
+      anexos_por_cpf: anexosPorCpf,
+      anexos_por_contrato: anexosPorContrato,
+      clientes_mesmo_contrato: clientesMesmoContrato,
+      total_anexos_por_cpf: anexosPorCpf.length,
+      total_anexos_por_contrato: anexosPorContrato.length,
+      total_clientes_mesmo_contrato: clientesMesmoContrato.length,
       estrutura_tabela: columns.map(c => c.Field),
-      message: 'Debug concluído - usando numero_contrato como relação'
+      message: 'Debug concluído - usando CPF direto da tabela cancelamento_pdfs'
     });
     
   } catch (error) {
