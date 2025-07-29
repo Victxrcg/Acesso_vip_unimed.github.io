@@ -101,7 +101,8 @@ app.get('/api/ocorrencias/:id/media', async (req, res) => {
     const { id } = req.params;
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    const [rows] = await pool.query(`
+    // Buscar na tabela media (áudios e outros arquivos)
+    const [mediaRows] = await pool.query(`
       SELECT 
         id,
         ocorrencia_id,
@@ -109,14 +110,33 @@ app.get('/api/ocorrencias/:id/media', async (req, res) => {
         file_name,
         file_path,
         mime_type,
-        file_size_bytes,
+        file_size_bytes as file_size,
         uploaded_at
       FROM media 
       WHERE ocorrencia_id = ?
       ORDER BY uploaded_at DESC
     `, [id]);
     
-    res.json(rows);
+    // Buscar na tabela cancelamento_pdfs (PDFs de anexos)
+    const [pdfRows] = await pool.query(`
+      SELECT 
+        id,
+        cancelamento_id as ocorrencia_id,
+        'pdf' as media_type,
+        file_name,
+        file_path,
+        mime_type,
+        file_size,
+        uploaded_at
+      FROM cancelamento_pdfs 
+      WHERE cancelamento_id = ?
+      ORDER BY uploaded_at DESC
+    `, [id]);
+    
+    // Combinar os resultados
+    const allMedia = [...mediaRows, ...pdfRows];
+    
+    res.json(allMedia);
   } catch (error) {
     console.error('Erro ao buscar mídia da ocorrência:', error);
     res.status(500).json({ error: 'Erro ao buscar mídia', details: error.message });
@@ -133,11 +153,20 @@ app.get('/api/media/download/:fileName', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Buscar o arquivo com todas as colunas
-    const [rows] = await pool.query(`
-      SELECT * FROM media 
+    // Primeiro, tentar buscar na tabela cancelamento_pdfs (anexos)
+    let [rows] = await pool.query(`
+      SELECT * FROM cancelamento_pdfs 
       WHERE file_name = ?
     `, [fileName]);
+    
+    // Se não encontrar na tabela cancelamento_pdfs, buscar na tabela media
+    if (rows.length === 0) {
+      console.log('📋 Arquivo não encontrado em cancelamento_pdfs, buscando em media...');
+      [rows] = await pool.query(`
+        SELECT * FROM media 
+        WHERE file_name = ?
+      `, [fileName]);
+    }
     
     if (rows.length === 0) {
       console.log('❌ Arquivo não encontrado no banco:', fileName);
@@ -148,7 +177,7 @@ app.get('/api/media/download/:fileName', async (req, res) => {
     console.log('✅ Arquivo encontrado no banco');
     
     // Verificar se existe alguma coluna com dados binários
-    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    const binaryColumns = ['file_content', 'file_data', 'data', 'content', 'binary_data'];
     let binaryData = null;
     let binaryColumn = null;
     
@@ -399,6 +428,126 @@ app.get('/api/audios/:cpf', async (req, res) => {
   // Não fechar conexão - será reutilizada
 });
 
+// Endpoint para listar anexos de um cliente
+app.get('/api/anexos/:cpf', async (req, res) => {
+  let pool, server;
+  try {
+    const { cpf } = req.params;
+    console.log('🔍 Buscando anexos para CPF:', cpf);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Primeiro, encontrar o cliente pelo CPF para obter o numero_contrato
+    const [clientes] = await pool.query(
+      'SELECT id, numero_contrato, nome_cliente FROM clientes_cancelamentos WHERE cpf_cnpj = ? LIMIT 1',
+      [cpf]
+    );
+    
+    if (clientes.length === 0) {
+      console.log('❌ Nenhum cliente encontrado para CPF:', cpf);
+      return res.json([]);
+    }
+    
+    const cliente = clientes[0];
+    console.log('✅ Cliente encontrado, ID:', cliente.id, 'Contrato:', cliente.numero_contrato);
+    
+    // Buscar anexos (PDFs) usando o numero_contrato como relação
+    const [anexosRows] = await pool.query(`
+      SELECT 
+        cp.id,
+        cp.cancelamento_id,
+        cp.file_name,
+        cp.file_path,
+        cp.mime_type,
+        cp.file_size,
+        cp.uploaded_at,
+        cp.tipo,
+        cc.numero_contrato,
+        cc.nome_cliente
+      FROM cancelamento_pdfs cp
+      INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      WHERE cc.numero_contrato = ?
+      ORDER BY cp.uploaded_at DESC
+    `, [cliente.numero_contrato]);
+    
+    console.log(`📋 Total de anexos encontrados para contrato ${cliente.numero_contrato}: ${anexosRows.length}`);
+    
+    // Transformar para o formato esperado pelo frontend
+    const anexos = anexosRows.map(row => ({
+      id: String(row.id),
+      fileName: row.file_name,
+      originalName: row.file_name,
+      fileSize: row.file_size || 0,
+      uploadDate: row.uploaded_at,
+      description: `Tipo: ${row.tipo} | Contrato: ${row.numero_contrato} | Cliente: ${row.nome_cliente}`,
+      fileType: row.mime_type || 'application/pdf',
+      tipo: row.tipo,
+      numeroContrato: row.numero_contrato,
+      nomeCliente: row.nome_cliente
+    }));
+    
+    res.json(anexos);
+  } catch (err) {
+    console.error('❌ Erro ao listar anexos:', err);
+    res.status(500).json({ error: 'Erro ao listar anexos', details: err.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Endpoint para listar anexos por número de contrato
+app.get('/api/anexos/contrato/:numeroContrato', async (req, res) => {
+  let pool, server;
+  try {
+    const { numeroContrato } = req.params;
+    console.log('🔍 Buscando anexos para contrato:', numeroContrato);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Buscar anexos (PDFs) diretamente pelo numero_contrato
+    const [anexosRows] = await pool.query(`
+      SELECT 
+        cp.id,
+        cp.cancelamento_id,
+        cp.file_name,
+        cp.file_path,
+        cp.mime_type,
+        cp.file_size,
+        cp.uploaded_at,
+        cp.tipo,
+        cc.numero_contrato,
+        cc.nome_cliente,
+        cc.cpf_cnpj
+      FROM cancelamento_pdfs cp
+      INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      WHERE cc.numero_contrato = ?
+      ORDER BY cp.uploaded_at DESC
+    `, [numeroContrato]);
+    
+    console.log(`📋 Total de anexos encontrados para contrato ${numeroContrato}: ${anexosRows.length}`);
+    
+    // Transformar para o formato esperado pelo frontend
+    const anexos = anexosRows.map(row => ({
+      id: String(row.id),
+      fileName: row.file_name,
+      originalName: row.file_name,
+      fileSize: row.file_size || 0,
+      uploadDate: row.uploaded_at,
+      description: `Tipo: ${row.tipo} | Contrato: ${row.numero_contrato} | Cliente: ${row.nome_cliente}`,
+      fileType: row.mime_type || 'application/pdf',
+      tipo: row.tipo,
+      numeroContrato: row.numero_contrato,
+      nomeCliente: row.nome_cliente,
+      cpfCnpj: row.cpf_cnpj
+    }));
+    
+    res.json(anexos);
+  } catch (err) {
+    console.error('❌ Erro ao listar anexos por contrato:', err);
+    res.status(500).json({ error: 'Erro ao listar anexos', details: err.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
 // Endpoint para download de áudio
 app.get('/api/audios/download/:fileName', async (req, res) => {
   let pool, server;
@@ -431,7 +580,7 @@ app.get('/api/audios/download/:fileName', async (req, res) => {
     console.log('📄 Dados completos:', audioData);
     
     // Verificar se existe alguma coluna com dados binários
-    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    const binaryColumns = ['file_content', 'file_data', 'data', 'content', 'binary_data'];
     let binaryData = null;
     let binaryColumn = null;
     
@@ -497,7 +646,7 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
     console.log('✅ Áudio encontrado no banco');
     
     // Verificar se existe alguma coluna com dados binários
-    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    const binaryColumns = ['file_content', 'file_data', 'data', 'content', 'binary_data'];
     let binaryData = null;
     let binaryColumn = null;
     
@@ -634,6 +783,230 @@ app.get('/api/audios/test/:fileName', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro no teste:', error);
     res.status(500).json({ error: 'Erro no teste', details: error.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota de debug para verificar anexos por CPF
+app.get('/api/debug/anexos/:cpf', async (req, res) => {
+  let pool, server;
+  try {
+    const { cpf } = req.params;
+    console.log('🔍 DEBUG: Buscando anexos para CPF:', cpf);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // 1. Verificar se o cliente existe
+    const [clientes] = await pool.query(`
+      SELECT id, numero_contrato, nome_cliente, cpf_cnpj 
+      FROM clientes_cancelamentos 
+      WHERE cpf_cnpj = ?
+    `, [cpf]);
+    
+    console.log('📋 Clientes encontrados:', clientes.length);
+    
+    if (clientes.length === 0) {
+      return res.json({
+        success: false,
+        message: 'Nenhum cliente encontrado para este CPF',
+        cpf,
+        clientes: []
+      });
+    }
+    
+    const cliente = clientes[0];
+    console.log('✅ Cliente encontrado:', cliente);
+    
+    // 2. Verificar anexos usando numero_contrato como relação
+    const [anexos] = await pool.query(`
+      SELECT 
+        cp.id,
+        cp.cancelamento_id,
+        cp.file_name,
+        cp.file_path,
+        cp.mime_type,
+        cp.file_size,
+        cp.uploaded_at,
+        cp.tipo,
+        cc.numero_contrato,
+        cc.nome_cliente,
+        CASE 
+          WHEN cp.file_content IS NOT NULL THEN 'SIM'
+          ELSE 'NÃO'
+        END as tem_conteudo_binario
+      FROM cancelamento_pdfs cp
+      INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      WHERE cc.numero_contrato = ?
+    `, [cliente.numero_contrato]);
+    
+    console.log('📋 Anexos encontrados para contrato', cliente.numero_contrato, ':', anexos.length);
+    
+    // 3. Verificar estrutura da tabela cancelamento_pdfs
+    const [columns] = await pool.query(`
+      DESCRIBE cancelamento_pdfs
+    `);
+    
+    res.json({
+      success: true,
+      cliente: {
+        id: cliente.id,
+        numero_contrato: cliente.numero_contrato,
+        nome_cliente: cliente.nome_cliente,
+        cpf_cnpj: cliente.cpf_cnpj
+      },
+      anexos: anexos,
+      total_anexos: anexos.length,
+      estrutura_tabela: columns.map(c => c.Field),
+      message: 'Debug concluído - usando numero_contrato como relação'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({ error: 'Erro no debug', details: error.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota de debug para listar todos os anexos
+app.get('/api/debug/anexos', async (req, res) => {
+  let pool, server;
+  try {
+    console.log('🔍 DEBUG: Listando todos os anexos');
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Buscar todos os anexos com informações do cliente
+    const [anexos] = await pool.query(`
+      SELECT 
+        cp.id,
+        cp.cancelamento_id,
+        cp.file_name,
+        cp.file_path,
+        cp.mime_type,
+        cp.file_size,
+        cp.uploaded_at,
+        cp.tipo,
+        cc.numero_contrato,
+        cc.nome_cliente,
+        cc.cpf_cnpj,
+        CASE 
+          WHEN cp.file_content IS NOT NULL THEN 'SIM'
+          ELSE 'NÃO'
+        END as tem_conteudo_binario
+      FROM cancelamento_pdfs cp
+      LEFT JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      ORDER BY cp.uploaded_at DESC
+      LIMIT 20
+    `);
+    
+    console.log('📋 Total de anexos encontrados:', anexos.length);
+    
+    res.json({
+      success: true,
+      total_anexos: anexos.length,
+      anexos: anexos,
+      message: 'Lista de anexos recuperada'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({ error: 'Erro no debug', details: error.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota de teste para verificar anexos
+app.get('/api/anexos/test/:fileName', async (req, res) => {
+  let pool, server;
+  try {
+    const { fileName } = req.params;
+    console.log('🧪 Teste de anexo para:', fileName);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Primeiro, vamos verificar a estrutura da tabela
+    const [columns] = await pool.query(`
+      DESCRIBE cancelamento_pdfs
+    `);
+    
+    console.log('📋 Estrutura da tabela cancelamento_pdfs:', columns);
+    
+    // Agora buscar o anexo com todas as colunas disponíveis
+    const [anexoRows] = await pool.query(`
+      SELECT 
+        cp.*,
+        cc.numero_contrato,
+        cc.nome_cliente,
+        cc.cpf_cnpj
+      FROM cancelamento_pdfs cp
+      LEFT JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+      WHERE cp.file_name = ?
+    `, [fileName]);
+    
+    if (anexoRows.length === 0) {
+      return res.json({ 
+        found: false, 
+        message: 'Anexo não encontrado no banco',
+        fileName 
+      });
+    }
+    
+    const anexoData = anexoRows[0];
+    
+    res.json({
+      found: true,
+      fileName: anexoData.file_name,
+      mimeType: anexoData.mime_type,
+      fileSize: anexoData.file_size,
+      uploadDate: anexoData.uploaded_at,
+      tipo: anexoData.tipo,
+      numeroContrato: anexoData.numero_contrato,
+      nomeCliente: anexoData.nome_cliente,
+      cpfCnpj: anexoData.cpf_cnpj,
+      allColumns: Object.keys(anexoData),
+      temConteudoBinario: anexoData.file_content ? 'SIM' : 'NÃO',
+      data: anexoData,
+      message: 'Anexo encontrado - verifique as colunas disponíveis'
+    });
+  } catch (error) {
+    console.error('❌ Erro no teste:', error);
+    res.status(500).json({ error: 'Erro no teste', details: error.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota para listar clientes disponíveis para teste
+app.get('/api/debug/clientes', async (req, res) => {
+  let pool, server;
+  try {
+    console.log('🔍 DEBUG: Listando clientes disponíveis');
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Buscar alguns clientes com seus números de contrato
+    const [clientes] = await pool.query(`
+      SELECT 
+        id,
+        cpf_cnpj,
+        nome_cliente,
+        numero_contrato
+      FROM clientes_cancelamentos 
+      ORDER BY id DESC
+      LIMIT 10
+    `);
+    
+    console.log('📋 Clientes encontrados:', clientes.length);
+    
+    res.json({
+      success: true,
+      total_clientes: clientes.length,
+      clientes: clientes,
+      message: 'Lista de clientes para teste'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({ error: 'Erro no debug', details: error.message });
   }
   // Não fechar conexão - será reutilizada
 });

@@ -20,7 +20,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileDown,
-  Eye
+  Eye,
+  Paperclip
 } from "lucide-react";
 
 const Compliance = () => {
@@ -33,6 +34,8 @@ const Compliance = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(15);
+  const [anexos, setAnexos] = useState({}); // Estado para armazenar anexos por cliente
+  const [loadingAnexos, setLoadingAnexos] = useState({}); // Estado para loading de anexos
 
   const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -206,35 +209,81 @@ const Compliance = () => {
     return normalized.length === 11 || normalized.length === 14;
   };
 
-  // Função para verificar se existe PDF para o cliente
-  const hasPdfNotification = (cliente) => {
-    // Aqui você pode implementar a lógica para verificar se existe PDF
-    // Por enquanto, vou simular que alguns clientes têm PDF
+  // Função para buscar anexos de um cliente
+  const buscarAnexos = async (cliente) => {
     const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
-    return cpfCnpj.length > 0; // Simulação: todos os clientes com CPF/CNPJ válido têm PDF
+    const numeroContrato = cliente.numero_contrato;
+    
+    if (!cpfCnpj || !numeroContrato) return;
+    
+    // Marcar como carregando
+    setLoadingAnexos(prev => ({ ...prev, [cpfCnpj]: true }));
+    
+    try {
+      console.log('🔍 Buscando anexos para contrato:', numeroContrato);
+      
+      // Buscar anexos usando o numero_contrato como relação
+      const anexosRes = await fetch(`${API_BASE}/api/anexos/contrato/${numeroContrato}`);
+      const anexosData = await anexosRes.json();
+      
+      console.log('✅ Anexos encontrados:', anexosData);
+      
+      setAnexos(prev => ({ ...prev, [cpfCnpj]: anexosData }));
+      
+    } catch (error) {
+      console.error('❌ Erro ao buscar anexos:', error);
+      setAnexos(prev => ({ ...prev, [cpfCnpj]: [] }));
+    } finally {
+      setLoadingAnexos(prev => ({ ...prev, [cpfCnpj]: false }));
+    }
   };
 
-  // Função para baixar PDF
-  const downloadPdf = (cliente) => {
+  // Função para verificar se cliente tem anexos
+  const hasAnexos = (cliente) => {
     const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
-    const fileName = `${cpfCnpj}_${cliente.nome_cliente.replace(/\s+/g, '_')}.pdf`;
+    return anexos[cpfCnpj] && anexos[cpfCnpj].length > 0;
+  };
+
+  // Função para baixar anexo
+  const downloadAnexo = (fileName) => {
+    console.log('📥 Baixando anexo:', fileName);
     
-    // Aqui você implementaria a lógica real de download
-    console.log(`Baixando PDF para: ${fileName}`);
-    
-    // Simulação de download
     const link = document.createElement('a');
-    link.href = `${API_BASE}/api/notificacoes/${cpfCnpj}/pdf`;
+    link.href = `${API_BASE}/api/media/download/${fileName}`;
     link.download = fileName;
     link.click();
+  };
+
+  // Função para obter ícone baseado no tipo de arquivo
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    switch (extension) {
+      case 'pdf':
+        return <FileText className="h-4 w-4 text-red-500" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'bmp':
+        return <FileText className="h-4 w-4 text-green-500" />;
+      case 'doc':
+      case 'docx':
+        return <FileText className="h-4 w-4 text-blue-500" />;
+      case 'xls':
+      case 'xlsx':
+        return <FileText className="h-4 w-4 text-green-600" />;
+      default:
+        return <FileText className="h-4 w-4 text-gray-500" />;
+    }
   };
 
   // Estatísticas de CPF/CNPJ
   const cpfsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 11).length;
   const cnpjsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 14).length;
   
-  // Estatísticas de PDFs
-  const pdfsCount = clientes.filter(c => hasPdfNotification(c)).length;
+  // Estatísticas de anexos
+  const anexosCount = clientes.filter(c => hasAnexos(c)).length;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -333,7 +382,7 @@ const Compliance = () => {
 
               {/* Estatísticas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
                     <div>
@@ -343,32 +392,62 @@ const Compliance = () => {
                   </div>
                 </div>
                 
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
                   <div className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                    <FileText className="h-5 w-5 text-green-600" />
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Total Contratos</p>
-                      <p className="text-2xl font-bold text-blue-700">{totalContratos}</p>
+                      <p className="text-sm font-medium text-green-900">Total Contratos</p>
+                      <p className="text-2xl font-bold text-green-700">{totalContratos}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-indigo-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-5 w-5 text-indigo-600" />
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm font-medium text-indigo-900">Espécies</p>
-                      <p className="text-2xl font-bold text-indigo-700">{totalEspecies}</p>
+                      <p className="text-sm font-medium text-blue-900">Espécies</p>
+                      <p className="text-2xl font-bold text-blue-700">{totalEspecies}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-sky-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
                   <div className="flex items-center space-x-2">
-                    <AlertCircle className="h-5 w-5 text-sky-600" />
+                    <AlertCircle className="h-5 w-5 text-green-600" />
                     <div>
-                      <p className="text-sm font-medium text-sky-900">Títulos</p>
-                      <p className="text-2xl font-bold text-sky-700">{totalCodigos}</p>
+                      <p className="text-sm font-medium text-green-900">Títulos</p>
+                      <p className="text-2xl font-bold text-green-700">{totalCodigos}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <Paperclip className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Com Anexos</p>
+                      <p className="text-2xl font-bold text-blue-700">{anexosCount}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-900">Total Anexos</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        {(() => {
+                          let total = 0;
+                          Object.values(anexos).forEach((anexosCliente: any) => {
+                            if (Array.isArray(anexosCliente)) {
+                              total += anexosCliente.length;
+                            }
+                          });
+                          return total;
+                        })()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -506,27 +585,67 @@ const Compliance = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center space-x-2">
-                                {hasPdfNotification(cliente) ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => downloadPdf(cliente)}
-                                    className="h-8 w-8 p-0 bg-blue-50 border-blue-200 hover:bg-blue-100"
-                                    title="Baixar Notificação PDF"
-                                  >
-                                    <FileDown className="h-4 w-4 text-blue-600" />
-                                  </Button>
+                              <div className="flex flex-col space-y-2">
+                                {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
+                                  <div className="flex items-center space-x-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span className="text-xs text-gray-500">Carregando...</span>
+                                  </div>
+                                ) : hasAnexos(cliente) ? (
+                                  <div className="flex flex-col space-y-1">
+                                    <div className="text-xs text-gray-600 font-medium">
+                                      Contrato: {cliente.numero_contrato}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
+                                        <Button
+                                          key={idx}
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => downloadAnexo(anexo.fileName)}
+                                          className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
+                                          title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                        >
+                                          {getFileIcon(anexo.fileName)}
+                                          <span className="ml-1 truncate max-w-20">
+                                            {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                          </span>
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <div className="h-8 w-8 bg-gray-100 rounded border flex items-center justify-center">
-                                    <FileText className="h-4 w-4 text-gray-400" />
+                                  <div className="flex flex-col space-y-1">
+                                    <div className="text-xs text-gray-600 font-medium">
+                                      Contrato: {cliente.numero_contrato}
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Paperclip className="h-4 w-4 text-gray-400" />
+                                      <span className="text-xs text-gray-500">Sem anexos</span>
+                                    </div>
                                   </div>
                                 )}
                                 
+                                {!loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] && !hasAnexos(cliente) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => buscarAnexos(cliente)}
+                                    className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
+                                    title="Buscar anexos"
+                                  >
+                                    <Search className="h-3 w-3 text-blue-600" />
+                                    <span className="ml-1">Buscar</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 w-8 p-0 bg-blue-50 border-blue-200 hover:bg-blue-100"
+                                  className="h-8 w-8 p-0 bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
                                   title="Visualizar Detalhes"
                                 >
                                   <Eye className="h-4 w-4 text-blue-600" />
