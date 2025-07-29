@@ -5,16 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Search, 
-  Filter, 
+ 
   Download, 
   Play, 
   Pause, 
-  Volume2,
   Calendar,
   DollarSign,
   Clock,
@@ -38,20 +36,16 @@ import React, { useRef } from "react";
 
 // Função para normalizar CPF/CNPJ (remove pontos, traços, barras, espaços)
 function normalizaCpfCnpj(str: string) {
-  return str.replace(/[\.\-\/]/g, '').replace(/\s/g, '');
+  return str.replace(/[.-/]/g, '').replace(/\s/g, '');
 }
 
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [orderBy, setOrderBy] = useState("recent");
   const [acaoFilter, setAcaoFilter] = useState("all");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState<number | null>(null);
   const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAudiosDialogOpen, setIsAudiosDialogOpen] = useState(false);
@@ -69,51 +63,61 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   // Troque a base das URLs para a produção
-  const API_BASE = "https://acessovipunimedgithubio-production.up.railway.app";
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/clientes`)
-      .then((res) => res.json())
-      .then((data) => {
-        // Mapear campos do backend para o formato esperado pelo front
-        const mappedCustomers = data.map((c: any) => {
-          // Usa o CPF/CNPJ original (com pontuação) para montar a URL do áudio
-          const cpfcnpjOriginal = c.cpf_cnpj;
-          let audioFileName = undefined;
-          if (cpfcnpjOriginal) {
-            audioFileName = c.audio_id || undefined;
-          }
-          return {
-            id: c.id,
-            credor: c.credor,
-            cpfCnpj: c.cpf_cnpj,
-            taAuto: c.titulo,
-            matricula: c.matricula,
-            nome: c.nome,
-            vencimento: c.vencimento,
-            atraso: c.atraso,
-            valorRecebido: c.valor_recebido,
-            plano: c.plano,
-            dataPromessaPagamento: c.data_pp,
-            dataVencimento: c.data_pgto,
-            comissao: c.comissao,
-            acao: c.acao,
-            sms: c.sms ? "SIM" : "NÃO",
-            ura: c.ura ? "SIM" : "NÃO",
-            envioNegociacao: c.envio_negociacao,
-            audioUrl: cpfcnpjOriginal ? `${API_BASE}/download/${cpfcnpjOriginal}` : undefined,
-            audioName: audioFileName,
-            audioUploadDate: undefined // Não há campo correspondente
-          };
+    const fetchCustomers = async () => {
+      try {
+        console.log('Buscando clientes da tabela ocorrencia...');
+        const response = await fetch(`${API_BASE}/api/ocorrencias`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Clientes carregados:', data);
+        
+        // Transformar dados da tabela ocorrencia para o formato esperado
+        const transformedCustomers = data.map((ocorrencia: Record<string, unknown>) => ({
+          id: Number(ocorrencia.id),
+          nome: String(ocorrencia.nome || 'Nome não informado'),
+          cpfCnpj: String(ocorrencia.cpf_cnpj),
+          credor: String(ocorrencia.credor),
+          titulo: String(ocorrencia.titulo || 'N/A'),
+          matricula: String(ocorrencia.matricula || 'N/A'),
+          valorRecebido: parseFloat(String(ocorrencia.valor_recebido)) || 0,
+          dataVencimento: ocorrencia.vencimento ? new Date(String(ocorrencia.vencimento)).toLocaleDateString('pt-BR') : 'N/A',
+          atraso: Number(ocorrencia.atraso_dias) || 0,
+          acao: String(ocorrencia.acao || 'N/A'),
+          plano: ocorrencia.plano ? String(ocorrencia.plano) : undefined,
+          dataPromessaPg: ocorrencia.data_promessa_pg ? new Date(String(ocorrencia.data_promessa_pg)).toLocaleDateString('pt-BR') : undefined,
+          dataPagamento: ocorrencia.data_pagamento ? new Date(String(ocorrencia.data_pagamento)).toLocaleDateString('pt-BR') : undefined,
+          comissao: parseFloat(String(ocorrencia.comissao)) || 0,
+          smsEnviado: ocorrencia.sms_enviado === 1,
+          uraEnviado: ocorrencia.ura_enviado === 1,
+          envioNegociacao: ocorrencia.envio_negociacao ? new Date(String(ocorrencia.envio_negociacao)).toLocaleDateString('pt-BR') : undefined,
+          audioUrl: null, // Será carregado separadamente se necessário
+          audioName: null,
+          audioUploadDate: null
+        }));
+        
+        setCustomers(transformedCustomers);
+        setFilteredCustomers(transformedCustomers);
+      } catch (error) {
+        console.error('Erro ao buscar clientes:', error);
+        toast({
+          title: "Erro ao carregar clientes",
+          description: "Não foi possível carregar os dados dos clientes.",
+          variant: "destructive",
         });
-        setCustomers(mappedCustomers);
-        setFilteredCustomers(mappedCustomers);
-      })
-      .catch(() => {
         setCustomers([]);
         setFilteredCustomers([]);
-      });
-  }, []);
+      }
+    };
+
+    fetchCustomers();
+  }, [API_BASE, toast]);
 
   useEffect(() => {
     let filtered = customers;
@@ -126,22 +130,13 @@ const Customers = () => {
       );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(customer => {
-        if (statusFilter === "overdue") return customer.atraso > 0;
-        if (statusFilter === "withAudio") return customer.audioUrl;
-        if (statusFilter === "upToDate") return customer.atraso <= 0;
-        return true;
-      });
-    }
-
     if (acaoFilter !== "all") {
       filtered = filtered.filter(customer => customer.acao && customer.acao.toLowerCase() === acaoFilter);
     }
 
-    // Ordenação por prioridade: ACD > URA > outros, depois por dataVencimento
+    // Ordenação por prioridade: ACD > URA > outros
     filtered = filtered.slice().sort((a, b) => {
-      const getPriority = (acao) => {
+      const getPriority = (acao: string) => {
         if (!acao) return 2;
         const acaoLower = acao.toLowerCase();
         if (acaoLower === "acd") return 0;
@@ -150,20 +145,12 @@ const Customers = () => {
       };
       const priorityA = getPriority(a.acao);
       const priorityB = getPriority(b.acao);
-      if (priorityA !== priorityB) return priorityA - priorityB;
-      // Se mesma prioridade, ordenar por dataVencimento (ou outro campo de data)
-      const dateA = a.dataVencimento ? new Date(a.dataVencimento.split('/').reverse().join('-')) : new Date(0);
-      const dateB = b.dataVencimento ? new Date(b.dataVencimento.split('/').reverse().join('-')) : new Date(0);
-      if (orderBy === "recent") {
-        return dateB.getTime() - dateA.getTime();
-      } else {
-        return dateA.getTime() - dateB.getTime();
-      }
+      return priorityA - priorityB;
     });
 
     setFilteredCustomers(filtered);
     setCurrentPage(1); // Sempre volta para a primeira página ao filtrar
-  }, [customers, searchTerm, statusFilter, orderBy, acaoFilter]);
+  }, [customers, searchTerm, acaoFilter]);
 
   // Paginação: calcular clientes da página atual
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
@@ -180,47 +167,9 @@ const Customers = () => {
     return new Date(dateString.split('/').reverse().join('-')).toLocaleDateString('pt-BR');
   };
 
-  const getStatusBadge = (atraso: number) => {
-    if (atraso > 60) {
-      return <Badge variant="destructive">Alto Atraso</Badge>;
-    } else if (atraso > 30) {
-      return <Badge variant="secondary" className="bg-warning text-warning-foreground">Médio Atraso</Badge>;
-    } else if (atraso > 0) {
-      return <Badge variant="outline">Baixo Atraso</Badge>;
-    } else {
-      return <Badge variant="default" className="bg-success text-success-foreground">Em Dia</Badge>;
-    }
-  };
 
-  const handleAudioUpload = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsAudioDialogOpen(true);
-  };
 
-  const handleAudioSave = () => {
-    if (selectedCustomer && audioFile) {
-      const updatedCustomers = customers.map(customer =>
-        customer.id === selectedCustomer.id
-          ? {
-              ...customer,
-              audioUrl: URL.createObjectURL(audioFile),
-              audioName: audioFile.name,
-              audioUploadDate: new Date().toLocaleDateString('pt-BR')
-            }
-          : customer
-      );
 
-      setCustomers(updatedCustomers);
-      setAudioFile(null);
-      setIsAudioDialogOpen(false);
-      setSelectedCustomer(null);
-
-      toast({
-        title: "Áudio salvo com sucesso!",
-        description: `Áudio associado ao cliente ${selectedCustomer.nome}`,
-      });
-    }
-  };
 
   const handlePlayPause = (customer: Customer) => {
     const ref = audioRefs.current[customer.id];
@@ -237,12 +186,31 @@ const Customers = () => {
     }
   };
 
-  const loadAttachments = async (cpf: string) => {
+  const loadAttachments = async (ocorrenciaId: number) => {
     try {
-      const cpfNormalizado = normalizaCpfCnpj(cpf);
-      const response = await fetch(`${API_BASE}/api/attachments/${cpfNormalizado}`);
+      console.log('Buscando anexos para ocorrência:', ocorrenciaId);
+      const response = await fetch(`${API_BASE}/api/ocorrencias/${ocorrenciaId}/media`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setAttachments(data);
+      console.log('Anexos carregados:', data);
+      
+      // Transformar dados da tabela media para o formato esperado
+      const transformedAttachments = data.map((media: Record<string, unknown>) => ({
+        id: String(media.id),
+        fileName: String(media.file_name),
+        originalName: String(media.file_name), // Usar file_name como originalName
+        fileType: String(media.mime_type || 'application/octet-stream'),
+        fileSize: Number(media.file_size_bytes) || 0,
+        uploadDate: String(media.uploaded_at),
+        description: `${String(media.media_type)} - ${String(media.file_name)}`,
+        mediaType: String(media.media_type)
+      }));
+      
+      setAttachments(transformedAttachments);
     } catch (error) {
       console.error('Erro ao carregar anexos:', error);
       setAttachments([]);
@@ -252,11 +220,11 @@ const Customers = () => {
   const handleAttachmentsClick = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsAttachmentsDialogOpen(true);
-    await loadAttachments(customer.cpfCnpj);
+    await loadAttachments(customer.id);
   };
 
   const handleAttachmentDownload = (fileName: string, originalName: string) => {
-    window.open(`${API_BASE}/api/attachments/download/${fileName}`, '_blank');
+    window.open(`${API_BASE}/api/media/download/${fileName}`, '_blank');
   };
 
   const loadAudios = async (cpf: string) => {
@@ -335,7 +303,7 @@ const Customers = () => {
     
     // Para cada anexo, abrir em uma nova aba (o navegador vai baixar automaticamente)
     attachments.forEach(attachment => {
-      window.open(`${API_BASE}/api/attachments/download/${attachment.fileName}`, '_blank');
+      window.open(`${API_BASE}/api/media/download/${attachment.fileName}`, '_blank');
     });
     
     toast({
@@ -386,21 +354,6 @@ const Customers = () => {
                 />
               </div>
             </div>
-            {/* Filtro de status */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-            </Select>
-            {/* Filtro de ordenação */}
-            <Select value={orderBy} onValueChange={setOrderBy}>
-              <SelectTrigger className="w-full sm:w-44">
-              <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Ordenar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Selecionar</SelectItem>
-                <SelectItem value="recent">Mais recentes</SelectItem>
-                <SelectItem value="oldest">Mais antigos</SelectItem>
-              </SelectContent>
-            </Select>
             {/* Filtro por ação */}
             <Select value={acaoFilter} onValueChange={setAcaoFilter}>
               <SelectTrigger className="w-full sm:w-44">
@@ -432,8 +385,8 @@ const Customers = () => {
                   <TableHead>CPF/CNPJ</TableHead>
                   <TableHead>Credor</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Data da ação</TableHead>
-                  <TableHead>Última ação</TableHead>
+                  <TableHead>Data da Ação</TableHead>
+                  <TableHead>Última Ação</TableHead>
                   <TableHead className="whitespace-nowrap">
                     Áudios
                     <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
@@ -463,7 +416,7 @@ const Customers = () => {
                     <TableCell className="font-medium">{customer.cpfCnpj}</TableCell>
                     <TableCell>{customer.credor}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(customer.valorRecebido)}</TableCell>
-                    <TableCell>{customer.dataVencimento}</TableCell>
+                    <TableCell>{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
                     <TableCell>{customer.acao}</TableCell>
                     <TableCell>
                       <Button
@@ -517,76 +470,16 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog para Upload de Áudio */}
-      <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Associar Áudio ao Cliente</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer-info">Cliente</Label>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="font-medium">{selectedCustomer?.nome}</div>
-                <div className="text-sm text-muted-foreground">
-                  CPF: {selectedCustomer?.cpfCnpj}
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="audio-file">Arquivo de Áudio</Label>
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="audio-file"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Volume2 className="w-8 h-8 mb-3 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
-                    </p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A (MAX. 10MB)</p>
-                  </div>
-                  <input
-                    id="audio-file"
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-              {audioFile && (
-                <div className="text-sm text-muted-foreground">
-                  Arquivo selecionado: {audioFile.name}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsAudioDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAudioSave}
-                disabled={!audioFile}
-              >
-                Salvar Áudio
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* 🎵 MODAL DE ÁUDIOS */}
       <Dialog open={isAudiosDialogOpen} onOpenChange={setIsAudiosDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gerenciar Áudios - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription>
+              Visualize, reproduza e faça download dos áudios associados a este cliente.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -620,7 +513,7 @@ const Customers = () => {
               {audios.length === 0 ? (
                 // 📭 Mensagem quando não há áudios
                 <div className="text-center py-8 text-muted-foreground">
-                  <Volume2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <FileAudio className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Nenhum áudio encontrado</p>
                   <p className="text-sm">Não há áudios disponíveis para este cliente</p>
                 </div>
@@ -711,6 +604,9 @@ const Customers = () => {
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gerenciar Anexos - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription>
+              Visualize e faça download dos anexos associados a este cliente.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">

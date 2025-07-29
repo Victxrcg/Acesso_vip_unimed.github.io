@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
+import Compliance from "./pages/Compliance";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/customers" element={<Layout><Customers /></Layout>} />
+          <Route path="/compliance" element={<Layout><Compliance /></Layout>} />
           {/* Redireciona / para /login */}
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="*" element={<NotFound />} />
