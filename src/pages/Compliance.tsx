@@ -47,11 +47,19 @@ const Compliance = () => {
       })
       .then(data => {
         console.log('LOTES:', data);
-        console.log('Quantidade de lotes:', data.length);
-        setLotes(data);
-        if (data.length > 0) {
-          console.log('Selecionando primeiro lote:', data[0].id);
-          setSelectedLote(data[0].id);
+        console.log('Tipo de dados:', typeof data);
+        console.log('É array?', Array.isArray(data));
+        console.log('Quantidade de lotes:', Array.isArray(data) ? data.length : 'N/A');
+        
+        if (Array.isArray(data)) {
+          setLotes(data);
+          if (data.length > 0) {
+            console.log('Selecionando primeiro lote:', data[0].id);
+            setSelectedLote(data[0].id);
+          }
+        } else {
+          console.error('Dados não são um array:', data);
+          setLotes([]);
         }
         setLoadingLotes(false);
       })
@@ -142,7 +150,7 @@ const Compliance = () => {
   }, [searchTerm, filterStatus, selectedLote]);
 
   // Estatísticas do lote selecionado
-  const selectedLoteData = lotes.find(l => l.id === selectedLote);
+  const selectedLoteData = Array.isArray(lotes) ? lotes.find(l => l.id === selectedLote) : null;
   const totalContratos = clientes.reduce((acc, c) => acc + c.contratos.length, 0);
   const totalEspecies = clientes.reduce((acc, c) => acc + c.especies.length, 0);
   const totalCodigos = clientes.reduce((acc, c) => acc + c.codigos.length, 0);
@@ -251,11 +259,11 @@ const Compliance = () => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Lotes Disponíveis</h3>
                 <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-                  {lotes.length}
+                  {Array.isArray(lotes) ? lotes.length : 0}
                 </Badge>
               </div>
               
-              {lotes.map((lote) => (
+              {Array.isArray(lotes) && lotes.map((lote) => (
                 <button
                   key={lote.id}
                   className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${

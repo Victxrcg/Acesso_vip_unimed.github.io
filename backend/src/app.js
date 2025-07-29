@@ -16,7 +16,7 @@ const allowedOrigins = [
   ];
 // const pdfsRoutes = require('./routes/pdfsRoutes');
 const bcrypt = require('bcrypt');
-const getDbPoolWithTunnel = require('./lib/db-ssh');
+const { getDbPoolWithTunnel, closeAllConnections } = require('./lib/db-ssh');
 
 const app = express();
 app.use(cors({
@@ -77,10 +77,8 @@ app.post('/login', async (req, res) => {
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erro ao autenticar.', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Nova rota para dashboard: ocorrencias
@@ -92,10 +90,8 @@ app.get('/api/ocorrencias', async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar ocorrências', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // API para buscar mídia de uma ocorrência específica
@@ -124,10 +120,8 @@ app.get('/api/ocorrencias/:id/media', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar mídia da ocorrência:', error);
     res.status(500).json({ error: 'Erro ao buscar mídia', details: error.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // API para download de mídia
@@ -135,35 +129,76 @@ app.get('/api/media/download/:fileName', async (req, res) => {
   let pool, server;
   try {
     const { fileName } = req.params;
+    console.log('🔍 Buscando arquivo para download:', fileName);
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
+    // Buscar o arquivo com todas as colunas
     const [rows] = await pool.query(`
-      SELECT file_path, mime_type 
-      FROM media 
+      SELECT * FROM media 
       WHERE file_name = ?
     `, [fileName]);
     
     if (rows.length === 0) {
+      console.log('❌ Arquivo não encontrado no banco:', fileName);
       return res.status(404).json({ error: 'Arquivo não encontrado' });
     }
     
-    const filePath = rows[0].file_path;
-    const mimeType = rows[0].mime_type || 'application/octet-stream';
+    const fileData = rows[0];
+    console.log('✅ Arquivo encontrado no banco');
     
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    // Verificar se existe alguma coluna com dados binários
+    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    let binaryData = null;
+    let binaryColumn = null;
+    
+    for (const col of binaryColumns) {
+      if (fileData[col]) {
+        binaryData = fileData[col];
+        binaryColumn = col;
+        break;
+      }
     }
     
-    res.setHeader('Content-Type', mimeType);
-    res.download(filePath);
+    if (binaryData) {
+      console.log(`✅ Dados binários encontrados na coluna: ${binaryColumn}`);
+      
+      const mimeType = fileData.mime_type || 'application/octet-stream';
+      
+      // Configurar headers para download
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      // Enviar dados binários diretamente do banco
+      res.send(binaryData);
+      
+      console.log('✅ Download concluído para:', fileName);
+    } else {
+      console.log('❌ Nenhuma coluna com dados binários encontrada');
+      console.log('📋 Colunas disponíveis:', Object.keys(fileData));
+      
+      // Fallback: tentar usar file_path se não houver dados binários
+      const filePath = fileData.file_path;
+      const mimeType = fileData.mime_type || 'application/octet-stream';
+      
+      if (fs.existsSync(filePath)) {
+        console.log('📁 Usando fallback: arquivo do sistema');
+        res.setHeader('Content-Type', mimeType);
+        res.download(filePath);
+      } else {
+        return res.status(404).json({ 
+          error: 'Dados do arquivo não encontrados no banco',
+          availableColumns: Object.keys(fileData),
+          message: 'O arquivo precisa estar armazenado como dados binários no banco'
+        });
+      }
+    }
+    
   } catch (error) {
-    console.error('Erro ao fazer download:', error);
+    console.error('❌ Erro ao fazer download:', error);
     res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Nova rota para todos os clientes (similar ao modelo Python)
@@ -194,10 +229,8 @@ app.get('/api/clientes', async (req, res) => {
     res.json(clientes);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar clientes', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Buscar clientes por CPF, nome ou contrato (similar ao Python)
@@ -236,10 +269,8 @@ app.get('/api/clientes/buscar', async (req, res) => {
     res.json(clientes);
   } catch (err) {
     res.status(500).json({ error: 'Erro na busca', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Estatísticas de clientes (similar ao Python)
@@ -286,10 +317,8 @@ app.get('/api/clientes/stats', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar estatísticas', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Rota para salvar decisão de auditoria (similar ao Python)
@@ -366,10 +395,8 @@ app.get('/api/audios/:cpf', async (req, res) => {
   } catch (err) {
     console.error('❌ Erro ao listar áudios:', err);
     res.status(500).json({ error: 'Erro ao listar áudios', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Endpoint para download de áudio
@@ -377,62 +404,73 @@ app.get('/api/audios/download/:fileName', async (req, res) => {
   let pool, server;
   try {
     const { fileName } = req.params;
-    console.log('🔍 Buscando arquivo para download:', fileName);
+    console.log('🔍 Buscando áudio para download:', fileName);
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
+    // Primeiro, vamos verificar todas as colunas disponíveis
+    const [columns] = await pool.query(`
+      DESCRIBE media
+    `);
+    
+    console.log('📋 Colunas disponíveis na tabela media:', columns.map(c => c.Field));
+    
+    // Buscar o áudio com todas as colunas
     const [mediaRows] = await pool.query(`
-      SELECT file_path, mime_type 
-      FROM media 
+      SELECT * FROM media 
       WHERE file_name = ? AND media_type = 'audio'
     `, [fileName]);
     
     if (mediaRows.length === 0) {
-      console.log('❌ Arquivo não encontrado no banco:', fileName);
-      return res.status(404).json({ error: 'Arquivo não encontrado' });
+      console.log('❌ Áudio não encontrado no banco:', fileName);
+      return res.status(404).json({ error: 'Áudio não encontrado' });
     }
     
-    const filePath = mediaRows[0].file_path;
-    const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
+    const audioData = mediaRows[0];
+    console.log('✅ Áudio encontrado no banco');
+    console.log('📄 Dados completos:', audioData);
     
-    console.log('📁 Caminho do arquivo:', filePath);
-    console.log('📄 Tipo MIME:', mimeType);
+    // Verificar se existe alguma coluna com dados binários
+    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    let binaryData = null;
+    let binaryColumn = null;
     
-    if (!fs.existsSync(filePath)) {
-      console.log('❌ Arquivo não encontrado no sistema:', filePath);
-      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    for (const col of binaryColumns) {
+      if (audioData[col]) {
+        binaryData = audioData[col];
+        binaryColumn = col;
+        break;
+      }
     }
     
-    console.log('✅ Arquivo encontrado, iniciando download...');
-    
-    // Configurar headers para download
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    
-    // Usar stream para arquivos grandes
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-    
-    // Fechar conexões após o download
-    fileStream.on('end', () => {
+    if (binaryData) {
+      console.log(`✅ Dados binários encontrados na coluna: ${binaryColumn}`);
+      
+      const mimeType = audioData.mime_type || 'audio/mpeg';
+      
+      // Configurar headers para download
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      // Enviar dados binários diretamente do banco
+      res.send(binaryData);
+      
       console.log('✅ Download concluído para:', fileName);
-      if (pool) pool.end();
-      if (server) server.close();
-    });
-    
-    fileStream.on('error', (error) => {
-      console.error('❌ Erro no stream do arquivo:', error);
-      res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
-      if (pool) pool.end();
-      if (server) server.close();
-    });
+    } else {
+      console.log('❌ Nenhuma coluna com dados binários encontrada');
+      console.log('📋 Colunas disponíveis:', Object.keys(audioData));
+      return res.status(404).json({ 
+        error: 'Dados do áudio não encontrados no banco',
+        availableColumns: Object.keys(audioData),
+        message: 'O áudio precisa estar armazenado como dados binários no banco'
+      });
+    }
     
   } catch (error) {
     console.error('❌ Erro ao fazer download:', error);
     res.status(500).json({ error: 'Erro ao fazer download', details: error.message });
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 // Endpoint para streaming de áudio (reprodução)
@@ -440,107 +478,97 @@ app.get('/api/audios/stream/:fileName', async (req, res) => {
   let pool, server;
   try {
     const { fileName } = req.params;
-    console.log('🔍 Buscando arquivo para streaming:', fileName);
+    console.log('🔍 Buscando áudio para streaming:', fileName);
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
+    // Buscar o áudio com todas as colunas
     const [mediaRows] = await pool.query(`
-      SELECT file_path, mime_type 
-      FROM media 
+      SELECT * FROM media 
       WHERE file_name = ? AND media_type = 'audio'
     `, [fileName]);
     
     if (mediaRows.length === 0) {
-      console.log('❌ Arquivo não encontrado no banco:', fileName);
-      return res.status(404).json({ error: 'Arquivo não encontrado' });
+      console.log('❌ Áudio não encontrado no banco:', fileName);
+      return res.status(404).json({ error: 'Áudio não encontrado' });
     }
     
-    const filePath = mediaRows[0].file_path;
-    const mimeType = mediaRows[0].mime_type || 'audio/mpeg';
+    const audioData = mediaRows[0];
+    console.log('✅ Áudio encontrado no banco');
     
-    console.log('📁 Caminho do arquivo:', filePath);
-    console.log('📄 Tipo MIME:', mimeType);
+    // Verificar se existe alguma coluna com dados binários
+    const binaryColumns = ['file_data', 'data', 'content', 'binary_data', 'file_content'];
+    let binaryData = null;
+    let binaryColumn = null;
     
-    if (!fs.existsSync(filePath)) {
-      console.log('❌ Arquivo não encontrado no sistema:', filePath);
-      return res.status(404).json({ error: 'Arquivo não encontrado no sistema' });
+    for (const col of binaryColumns) {
+      if (audioData[col]) {
+        binaryData = audioData[col];
+        binaryColumn = col;
+        break;
+      }
     }
-
-    console.log('✅ Arquivo encontrado, iniciando streaming...');
-
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
-
-    // Configurar headers CORS para streaming
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', 'Range');
-
-    if (range) {
-      // Suporte a Range Requests (streaming)
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
-      const chunksize = (end-start)+1;
+    
+    if (binaryData) {
+      console.log(`✅ Dados binários encontrados na coluna: ${binaryColumn}`);
       
-      console.log(`📊 Streaming range: ${start}-${end}/${fileSize} (${chunksize} bytes)`);
+      const mimeType = audioData.mime_type || 'audio/mpeg';
+      const fileSize = audioData.file_size_bytes || binaryData.length;
+      const range = req.headers.range;
+
+      // Configurar headers CORS para streaming
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Range');
+      res.setHeader('Accept-Ranges', 'bytes');
+
+      if (range && fileSize > 0) {
+        // Suporte a Range Requests (streaming)
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
+        const chunksize = (end-start)+1;
+        
+        console.log(`📊 Streaming range: ${start}-${end}/${fileSize} (${chunksize} bytes)`);
+        
+        const head = {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': mimeType,
+        };
+        res.writeHead(206, head);
+        
+        // Enviar apenas a parte solicitada dos dados
+        const buffer = Buffer.from(binaryData);
+        res.end(buffer.slice(start, end + 1));
+      } else {
+        // Streaming completo
+        console.log(`📊 Streaming completo: ${fileSize} bytes`);
+        
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', fileSize);
+        
+        // Enviar todos os dados do áudio
+        res.send(binaryData);
+      }
       
-      const file = fs.createReadStream(filePath, {start, end});
-      const head = {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunksize,
-        'Content-Type': mimeType,
-      };
-      res.writeHead(206, head);
-      file.pipe(res);
-      
-      // Fechar conexões após o streaming
-      file.on('end', () => {
-        console.log('✅ Streaming concluído para:', fileName);
-        if (pool) pool.end();
-        if (server) server.close();
-      });
-      
-      file.on('error', (error) => {
-        console.error('❌ Erro no stream do arquivo:', error);
-        if (pool) pool.end();
-        if (server) server.close();
-      });
+      console.log('✅ Streaming concluído para:', fileName);
     } else {
-      // Streaming completo
-      console.log(`📊 Streaming completo: ${fileSize} bytes`);
-      
-      const head = {
-        'Content-Length': fileSize,
-        'Content-Type': mimeType,
-        'Accept-Ranges': 'bytes',
-      };
-      res.writeHead(200, head);
-      
-      const file = fs.createReadStream(filePath);
-      file.pipe(res);
-      
-      // Fechar conexões após o streaming
-      file.on('end', () => {
-        console.log('✅ Streaming completo concluído para:', fileName);
-        if (pool) pool.end();
-        if (server) server.close();
-      });
-      
-      file.on('error', (error) => {
-        console.error('❌ Erro no stream do arquivo:', error);
-        if (pool) pool.end();
-        if (server) server.close();
+      console.log('❌ Nenhuma coluna com dados binários encontrada');
+      console.log('📋 Colunas disponíveis:', Object.keys(audioData));
+      return res.status(404).json({ 
+        error: 'Dados do áudio não encontrados no banco',
+        availableColumns: Object.keys(audioData),
+        message: 'O áudio precisa estar armazenado como dados binários no banco'
       });
     }
+    
   } catch (error) {
     console.error('❌ Erro ao fazer streaming:', error);
     res.status(500).json({ error: 'Erro ao fazer streaming do áudio', details: error.message });
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 });
 
 app.get('/', (req, res) => {
@@ -570,42 +598,267 @@ app.get('/api/audios/test/:fileName', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
+    // Primeiro, vamos verificar a estrutura da tabela
+    const [columns] = await pool.query(`
+      DESCRIBE media
+    `);
+    
+    console.log('📋 Estrutura da tabela media:', columns);
+    
+    // Agora buscar o áudio com todas as colunas disponíveis
     const [mediaRows] = await pool.query(`
-      SELECT file_path, mime_type, file_size_bytes 
-      FROM media 
+      SELECT * FROM media 
       WHERE file_name = ? AND media_type = 'audio'
     `, [fileName]);
     
     if (mediaRows.length === 0) {
       return res.json({ 
         found: false, 
-        message: 'Arquivo não encontrado no banco',
+        message: 'Áudio não encontrado no banco',
         fileName 
       });
     }
     
-    const filePath = mediaRows[0].file_path;
-    const exists = fs.existsSync(filePath);
+    const audioData = mediaRows[0];
     
     res.json({
       found: true,
-      exists: exists,
-      fileName,
-      filePath,
-      mimeType: mediaRows[0].mime_type,
-      fileSize: mediaRows[0].file_size_bytes,
-      message: exists ? 'Arquivo encontrado e acessível' : 'Arquivo não encontrado no sistema'
+      fileName: audioData.file_name,
+      mimeType: audioData.mime_type,
+      fileSize: audioData.file_size_bytes,
+      uploadDate: audioData.uploaded_at,
+      allColumns: Object.keys(audioData),
+      data: audioData,
+      message: 'Áudio encontrado - verifique as colunas disponíveis'
     });
   } catch (error) {
     console.error('❌ Erro no teste:', error);
     res.status(500).json({ error: 'Erro no teste', details: error.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota para adicionar coluna de dados binários
+app.post('/api/setup/add-binary-column', async (req, res) => {
+  let pool, server;
+  try {
+    console.log('🔧 Adicionando coluna file_data à tabela media...');
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Verificar se a coluna já existe
+    const [columns] = await pool.query(`
+      DESCRIBE media
+    `);
+    
+    const hasFileData = columns.some(col => col.Field === 'file_data');
+    
+    if (hasFileData) {
+      console.log('✅ Coluna file_data já existe');
+      return res.json({ 
+        success: true, 
+        message: 'Coluna file_data já existe na tabela media',
+        columns: columns.map(c => c.Field)
+      });
+    }
+    
+    // Adicionar a coluna file_data
+    await pool.query(`
+      ALTER TABLE media 
+      ADD COLUMN file_data LONGBLOB 
+      COMMENT 'Dados binários do arquivo'
+    `);
+    
+    console.log('✅ Coluna file_data adicionada com sucesso');
+    
+    // Verificar a estrutura atualizada
+    const [updatedColumns] = await pool.query(`
+      DESCRIBE media
+    `);
+    
+    res.json({ 
+      success: true, 
+      message: 'Coluna file_data adicionada com sucesso',
+      columns: updatedColumns.map(c => c.Field)
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao adicionar coluna:', error);
+    res.status(500).json({ 
+      error: 'Erro ao adicionar coluna', 
+      details: error.message 
+    });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota para carregar arquivo de áudio no banco
+app.post('/api/audios/upload/:fileName', async (req, res) => {
+  let pool, server;
+  try {
+    const { fileName } = req.params;
+    console.log('📤 Carregando arquivo de áudio:', fileName);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Primeiro, verificar se o arquivo existe no sistema
+    const [mediaRows] = await pool.query(`
+      SELECT file_path FROM media 
+      WHERE file_name = ? AND media_type = 'audio'
+    `, [fileName]);
+    
+    if (mediaRows.length === 0) {
+      return res.status(404).json({ error: 'Arquivo não encontrado no banco' });
+    }
+    
+    const filePath = mediaRows[0].file_path;
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        error: 'Arquivo não encontrado no sistema',
+        path: filePath,
+        message: 'O arquivo precisa existir no sistema para ser carregado no banco'
+      });
+    }
+    
+    // Ler o arquivo como buffer
+    const fileBuffer = fs.readFileSync(filePath);
+    console.log(`📊 Arquivo lido: ${fileBuffer.length} bytes`);
+    
+    // Atualizar o registro com os dados binários
+    await pool.query(`
+      UPDATE media 
+      SET file_data = ? 
+      WHERE file_name = ? AND media_type = 'audio'
+    `, [fileBuffer, fileName]);
+    
+    console.log('✅ Arquivo carregado no banco com sucesso');
+    
+    res.json({ 
+      success: true, 
+      message: 'Arquivo carregado no banco com sucesso',
+      fileName,
+      fileSize: fileBuffer.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar arquivo:', error);
+    res.status(500).json({ 
+      error: 'Erro ao carregar arquivo', 
+      details: error.message 
+    });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
+// Rota para carregar todos os arquivos de áudio no banco
+app.post('/api/audios/upload-all', async (req, res) => {
+  let pool, server;
+  try {
+    console.log('📤 Carregando todos os arquivos de áudio no banco...');
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Buscar todos os registros de áudio
+    const [mediaRows] = await pool.query(`
+      SELECT file_name, file_path FROM media 
+      WHERE media_type = 'audio' AND file_data IS NULL
+    `);
+    
+    console.log(`📋 Encontrados ${mediaRows.length} arquivos para carregar`);
+    
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const row of mediaRows) {
+      try {
+        const filePath = row.file_path;
+        
+        if (!fs.existsSync(filePath)) {
+          console.log(`❌ Arquivo não encontrado: ${filePath}`);
+          results.push({
+            fileName: row.file_name,
+            success: false,
+            error: 'Arquivo não encontrado no sistema'
+          });
+          errorCount++;
+          continue;
+        }
+        
+        // Ler o arquivo como buffer
+        const fileBuffer = fs.readFileSync(filePath);
+        
+        // Atualizar o registro com os dados binários
+        await pool.query(`
+          UPDATE media 
+          SET file_data = ? 
+          WHERE file_name = ?
+        `, [fileBuffer, row.file_name]);
+        
+        console.log(`✅ ${row.file_name}: ${fileBuffer.length} bytes`);
+        
+        results.push({
+          fileName: row.file_name,
+          success: true,
+          fileSize: fileBuffer.length
+        });
+        successCount++;
+        
+      } catch (error) {
+        console.error(`❌ Erro ao carregar ${row.file_name}:`, error.message);
+        results.push({
+          fileName: row.file_name,
+          success: false,
+          error: error.message
+        });
+        errorCount++;
+      }
+    }
+    
+    console.log(`📊 Resumo: ${successCount} sucessos, ${errorCount} erros`);
+    
+    res.json({ 
+      success: true, 
+      message: `Carregamento concluído: ${successCount} sucessos, ${errorCount} erros`,
+      results,
+      summary: {
+        total: mediaRows.length,
+        success: successCount,
+        error: errorCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar arquivos:', error);
+    res.status(500).json({ 
+      error: 'Erro ao carregar arquivos', 
+      details: error.message 
+    });
+  }
+  // Não fechar conexão - será reutilizada
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend rodando em http://localhost:${PORT}`);
+});
+
+// Fechar conexões quando o servidor for encerrado
+process.on('SIGINT', async () => {
+  console.log('\n🔄 Encerrando servidor...');
+  await closeAllConnections();
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🔄 Encerrando servidor...');
+  await closeAllConnections();
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    process.exit(0);
+  });
 }); 

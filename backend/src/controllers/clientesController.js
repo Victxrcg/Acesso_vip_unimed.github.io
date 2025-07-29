@@ -1,4 +1,4 @@
-const getDbPoolWithTunnel = require('../lib/db-ssh');
+const { getDbPoolWithTunnel } = require('../lib/db-ssh');
 
 exports.listarClientesDoLote = async (req, res) => {
   let pool, server;
@@ -13,8 +13,6 @@ exports.listarClientesDoLote = async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar clientes do lote', details: err.message });
-  } finally {
-    if (pool) await pool.end();
-    if (server) server.close();
   }
+  // Não fechar conexão - será reutilizada
 }; 
