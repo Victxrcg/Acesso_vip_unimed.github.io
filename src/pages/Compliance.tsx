@@ -37,7 +37,7 @@ const Compliance = () => {
   const [anexos, setAnexos] = useState({}); // Estado para armazenar anexos por cliente
   const [loadingAnexos, setLoadingAnexos] = useState({}); // Estado para loading de anexos
 
-  const API_BASE = import.meta.env.VITE_API_URL;
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
 
   // Buscar lotes ao montar
   useEffect(() => {

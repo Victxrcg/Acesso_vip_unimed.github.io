@@ -1,4 +1,4 @@
-const { getDbPoolWithTunnel } = require('../lib/db-ssh');
+const { getDbPoolWithTunnel } = require('../lib/db');
 
 exports.listarClientesDoLote = async (req, res) => {
   let pool, server;
