@@ -1,1 +1,1 @@
-web: node server.cjs 
+web: cd backend && npm start 

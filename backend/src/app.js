@@ -12,11 +12,16 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://172.23.96.1:5175',
     'http://10.100.20.241:5175',
-    'https://acessovipunimedgithubio-production.up.railway.app'
+    'https://acessovipunimedgithubio-production.up.railway.app',
+    'https://auditaai.portes.com.br',
+    'https://auditaai.portes.com.br/customers',
+    'https://auditaai.portes.com.br/login',
+    'https://auditaai.portes.com.br/dashboard',
+    'https://auditaai.portes.com.br/compliance',
   ];
 // const pdfsRoutes = require('./routes/pdfsRoutes');
 const bcrypt = require('bcrypt');
-const { getDbPoolWithTunnel, closeAllConnections } = require('./lib/db-ssh');
+const { getDbPoolWithTunnel, closeAllConnections } = require('./lib/db');
 
 const app = express();
 app.use(cors({
@@ -53,6 +58,10 @@ app.use(express.json());
 
 app.use('/api/lotes_cancelamento', lotesRoutes);
 app.use('/api/lotes_cancelamento', clientesRoutes); // clientes por lote
+
+// Rotas diretas para compatibilidade com o frontend
+app.use('/api/lotes', lotesRoutes);
+app.use('/api/clientes', clientesRoutes);
 // app.use('/api', pdfsRoutes); // pdfs e download
 
 app.post('/login', async (req, res) => {
@@ -81,7 +90,7 @@ app.post('/login', async (req, res) => {
   // Não fechar conexão - será reutilizada
 });
 
-// Nova rota para dashboard: ocorrencias
+// Rota para ocorrências (compatibilidade com frontend)
 app.get('/api/ocorrencias', async (req, res) => {
   let pool, server;
   try {
@@ -230,7 +239,7 @@ app.get('/api/media/download/:fileName', async (req, res) => {
   // Não fechar conexão - será reutilizada
 });
 
-// Nova rota para todos os clientes (similar ao modelo Python)
+// Rota para todos os clientes (compatibilidade com frontend)
 app.get('/api/clientes', async (req, res) => {
   let pool, server;
   try {
