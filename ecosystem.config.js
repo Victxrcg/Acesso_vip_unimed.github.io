@@ -12,7 +12,7 @@ module.exports = {
       PORT: 3001,
       DB_HOST: '127.0.0.1',
       DB_PORT: '3306',
-      DB_USER: 'root',
+      DB_USER: 'auditaai_user',
       DB_PASS: '123Mudar',
       DB_NAME: 'auditaai'
     },
