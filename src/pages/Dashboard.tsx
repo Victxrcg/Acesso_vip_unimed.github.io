@@ -35,7 +35,7 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     
     // Buscar ocorrências para o dashboard
     fetch(`${API_BASE}/api/ocorrencias`)

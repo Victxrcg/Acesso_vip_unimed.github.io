@@ -38,7 +38,7 @@ const Layout = ({ children }: LayoutProps) => {
       case '/help':
         return 'Ajuda';
       default:
-        return 'AuditaAI Unimed';
+        return 'Auditoria Unimed';
     }
   };
 
