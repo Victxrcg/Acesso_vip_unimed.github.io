@@ -495,7 +495,7 @@ const Compliance = () => {
                         <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
                         <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
                         <TableHead className="font-semibold text-gray-900">Anexos</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Validações de contato</TableHead>
+                        <TableHead className="font-semibold text-gray-900 whitespace-nowrap w-auto">Validações de contato</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="flex-1">
@@ -624,11 +624,11 @@ const Compliance = () => {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="w-auto">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
+                                className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 w-full"
                                 title="Validações de contato"
                               >
                                 <Paperclip className="h-3 w-3 text-blue-600" />
