@@ -494,7 +494,7 @@ const Compliance = () => {
                         <TableHead className="font-semibold text-gray-900">CPF/CNPJ</TableHead>
                         <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
                         <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Validações de contato</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="flex-1">
@@ -572,6 +572,19 @@ const Compliance = () => {
                               </div>
                             </TableCell>
                             <TableCell>
+                              <div className="space-y-1">
+                                {cliente.codigos.map((codigo, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-sm"
+                                  >
+                                    {codigo}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
                               <div className="flex flex-col space-y-2">
                                 {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
                                   <div className="flex items-center space-x-2">
@@ -604,21 +617,18 @@ const Compliance = () => {
                                     className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
                                     title="Buscar anexos"
                                   >
-                                    <Search className="h-3 w-3 text-blue-600" />
-                                    <span className="ml-1">Buscar</span>
+                                    <FileDown className="h-3 w-3 text-blue-600" />
+                                    <span className="ml-1">Anexos</span>
                                   </Button>
                                 )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 w-8 p-0 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                                  className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
                                   title="Validações de contato"
                                 >
-                                  <Paperclip className="h-4 w-4 text-purple-600" />
+                                  <Paperclip className="h-3 w-3 text-blue-600" />
+                                  <span className="ml-1">Validações</span>
                                 </Button>
                               </div>
                             </TableCell>
