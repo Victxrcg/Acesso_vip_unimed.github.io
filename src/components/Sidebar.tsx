@@ -79,7 +79,7 @@ const Sidebar = () => {
                 <Shield className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">AuditaAI Unimed</h1>
+                <h1 className="text-lg font-bold text-sidebar-foreground">Auditoria Unimed</h1>
                 <p className="text-sm text-sidebar-foreground">Sistema de Auditoria Portes</p>      
               </div>
             </div>

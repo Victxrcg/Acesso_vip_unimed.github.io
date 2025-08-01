@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/button";
 import { 
   Search, 
   Filter, 
-  Download, 
   Calendar, 
   Users, 
   FileText, 
-  TrendingUp,
   CheckCircle,
   AlertCircle,
   Clock,
@@ -20,7 +18,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileDown,
-  Eye,
   Paperclip
 } from "lucide-react";
 
@@ -37,7 +34,7 @@ const Compliance = () => {
   const [anexos, setAnexos] = useState({}); // Estado para armazenar anexos por cliente
   const [loadingAnexos, setLoadingAnexos] = useState({}); // Estado para loading de anexos
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Buscar lotes ao montar
   useEffect(() => {
@@ -367,16 +364,7 @@ const Compliance = () => {
                   </h1>
                   <p className="text-gray-600">{selectedLoteData.nome_arquivo}</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar
-                  </Button>
-                  <Button size="sm">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Relatório
-                  </Button>
-                </div>
+
               </div>
 
               {/* Estatísticas */}
@@ -506,7 +494,7 @@ const Compliance = () => {
                         <TableHead className="font-semibold text-gray-900">CPF/CNPJ</TableHead>
                         <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
                         <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Ações</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Validações de contato</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="flex-1">
@@ -627,10 +615,10 @@ const Compliance = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 w-8 p-0 bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
-                                  title="Visualizar Detalhes"
+                                  className="h-8 w-8 p-0 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                                  title="Validações de contato"
                                 >
-                                  <Eye className="h-4 w-4 text-blue-600" />
+                                  <Paperclip className="h-4 w-4 text-purple-600" />
                                 </Button>
                               </div>
                             </TableCell>
