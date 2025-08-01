@@ -494,13 +494,14 @@ const Compliance = () => {
                         <TableHead className="font-semibold text-gray-900">CPF/CNPJ</TableHead>
                         <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
                         <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Ações</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Anexos</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Validações de contato</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="flex-1">
                       {loadingClientes ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12">
+                          <TableCell colSpan={7} className="text-center py-12">
                             <div className="flex flex-col items-center space-y-3">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                               <p className="text-gray-600">Carregando clientes...</p>
@@ -585,7 +586,7 @@ const Compliance = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-col space-y-2">
+                              <div className="flex flex-wrap gap-1">
                                 {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
                                   <div className="flex items-center space-x-2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -621,22 +622,24 @@ const Compliance = () => {
                                     <span className="ml-1">Anexos</span>
                                   </Button>
                                 )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
-                                  title="Validações de contato"
-                                >
-                                  <Paperclip className="h-3 w-3 text-blue-600" />
-                                  <span className="ml-1">Validações</span>
-                                </Button>
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
+                                title="Validações de contato"
+                              >
+                                <Paperclip className="h-3 w-3 text-blue-600" />
+                                <span className="ml-1">Validações</span>
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12">
+                          <TableCell colSpan={7} className="text-center py-12">
                             <div className="flex flex-col items-center space-y-3">
                               <AlertCircle className="h-12 w-12 text-gray-400" />
                               <div>
