@@ -1033,6 +1033,52 @@ app.get('/api/anexos/test/:fileName', async (req, res) => {
   // Não fechar conexão - será reutilizada
 });
 
+// Rota para testar clientes de um lote específico
+app.get('/api/debug/lote/:loteId/clientes', async (req, res) => {
+  let pool, server;
+  try {
+    const { loteId } = req.params;
+    console.log('🔍 DEBUG: Testando clientes do lote:', loteId);
+    
+    ({ pool, server } = await getDbPoolWithTunnel());
+    
+    // Testar a mesma query do controller
+    const [rows] = await pool.query(`
+      SELECT 
+        id,
+        numero_contrato,
+        especie,
+        nome_cliente,
+        codigo_titulo,
+        cpf_cnpj,
+        valor_atual,
+        dias_atraso,
+        data_vencimento,
+        status,
+        created_at,
+        updated_at
+      FROM clientes_cancelamentos
+      WHERE lote_id = ?
+      ORDER BY nome_cliente
+    `, [loteId]);
+    
+    console.log(`📋 Total de clientes encontrados para lote ${loteId}:`, rows.length);
+    
+    res.json({
+      success: true,
+      lote_id: loteId,
+      total_clientes: rows.length,
+      clientes: rows,
+      message: 'Teste de clientes do lote'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({ error: 'Erro no debug', details: error.message });
+  }
+  // Não fechar conexão - será reutilizada
+});
+
 // Rota para listar clientes disponíveis para teste
 app.get('/api/debug/clientes', async (req, res) => {
   let pool, server;
