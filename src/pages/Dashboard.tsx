@@ -189,6 +189,7 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Média de Atraso</span>
                   <span className="text-lg font-bold">{metrics.mediaAtraso} dias</span>
+                  
                 </div>
               </CardContent>
             </Card>

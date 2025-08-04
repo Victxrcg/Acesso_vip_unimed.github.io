@@ -38,7 +38,7 @@ const Layout = ({ children }: LayoutProps) => {
       case '/help':
         return 'Ajuda';
       default:
-        return 'Auditoria Unimed';
+        return 'Compliance Unimed';
     }
   };
 
@@ -53,9 +53,6 @@ const Layout = ({ children }: LayoutProps) => {
             <h1 className="text-xl font-semibold text-foreground">
               {getPageTitle()}
             </h1>
-            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-              Online
-            </Badge>
           </div>
 
           <div className="flex items-center gap-4">
