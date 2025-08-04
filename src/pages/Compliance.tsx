@@ -82,21 +82,11 @@ const Compliance = () => {
         })
         .then(data => {
           console.log('CLIENTES DO LOTE (RAW):', data);
-          console.log('Tipo de dados:', typeof data);
-          console.log('É array?', Array.isArray(data));
-          console.log('Quantidade de clientes:', Array.isArray(data) ? data.length : 'N/A');
-          
-          if (!Array.isArray(data)) {
-            console.error('❌ Dados não são um array:', data);
-            setClientes([]);
-            setLoadingClientes(false);
-            return;
-          }
+          console.log('Quantidade de clientes:', data.length);
           
           if (data.length === 0) {
             console.log('Nenhum cliente encontrado para este lote');
             setClientes([]);
-            setLoadingClientes(false);
             return;
           }
           
@@ -148,24 +138,11 @@ const Compliance = () => {
     cliente.cpf_cnpj.includes(searchTerm)
   );
 
-  // Debug: Log dos dados
-  console.log('🔍 DEBUG - Total de clientes:', clientes.length);
-  console.log('🔍 DEBUG - Termo de busca:', searchTerm);
-  console.log('🔍 DEBUG - Clientes filtrados:', filteredClientes.length);
-  console.log('🔍 DEBUG - Página atual:', currentPage);
-  console.log('🔍 DEBUG - Itens por página:', itemsPerPage);
-
   // Calcular paginação
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentClientes = filteredClientes.slice(startIndex, endIndex);
-  
-  // Debug: Log da paginação
-  console.log('🔍 DEBUG - Clientes na página atual:', currentClientes.length);
-  console.log('🔍 DEBUG - Total de páginas:', totalPages);
-  console.log('🔍 DEBUG - Índice inicial:', startIndex);
-  console.log('🔍 DEBUG - Índice final:', endIndex);
 
   // Resetar página quando mudar filtros
   useEffect(() => {
@@ -198,6 +175,8 @@ const Compliance = () => {
     
     return clean;
   };
+
+
 
   // Função para formatar CPF/CNPJ
   const formatCpfCnpj = (cpfCnpj) => {
@@ -376,7 +355,7 @@ const Compliance = () => {
       {/* Conteúdo Principal */}
       <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-          <div className="flex flex-col h-full space-y-4 lg:space-y-6">
+          <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
@@ -386,10 +365,11 @@ const Compliance = () => {
                   </h1>
                   <p className="text-sm lg:text-base text-gray-600 truncate">{selectedLoteData.nome_arquivo}</p>
                 </div>
+
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -430,15 +410,7 @@ const Compliance = () => {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center space-x-2">
-                    <Paperclip className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Com Anexos</p>
-                      <p className="text-2xl font-bold text-blue-700">{anexosCount}</p>
-                    </div>
-                  </div>
-                </div>
+
                 
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
                   <div className="flex items-center space-x-2">
@@ -510,160 +482,162 @@ const Compliance = () => {
                 <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
                   <div className="overflow-x-auto">
                     <Table className="flex-1 min-w-full">
-                      <TableHeader>
+                                          <TableHeader>
                         <TableRow className="bg-gray-50">
                           <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[120px] whitespace-nowrap">CPF/CNPJ</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[100px]">Contrato</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[100px]">Títulos</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[150px] whitespace-nowrap">Validações de contato</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody className="flex-1">
-                        {loadingClientes ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-12">
-                              <div className="flex flex-col items-center space-y-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                <p className="text-sm lg:text-base text-gray-600">Carregando clientes...</p>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : currentClientes.length > 0 ? (
-                          currentClientes.map((cliente, index) => (
-                            <TableRow 
-                              key={cliente.cpf_cnpj} 
-                              className={`hover:bg-gray-50 transition-colors ${
-                                index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
-                              }`}
-                            >
-                              <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-sm font-semibold text-blue-700">
-                                      {cliente.nome_cliente.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-gray-900 text-xs lg:text-sm truncate">{cliente.nome_cliente}</p>
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                      {cliente.especies.map((especie, idx) => (
-                                        <Badge 
-                                          key={idx} 
-                                          variant="secondary" 
-                                          className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs px-1 py-0"
-                                        >
-                                          {especie}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-mono text-xs lg:text-sm whitespace-nowrap">
-                                  <span className="text-gray-900 font-medium">
-                                    {formatCpfCnpj(cliente.cpf_cnpj)}
+                    <TableBody className="flex-1">
+                      {loadingClientes ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-12">
+                            <div className="flex flex-col items-center space-y-3">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                              <p className="text-sm lg:text-base text-gray-600">Carregando clientes...</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : currentClientes.length > 0 ? (
+                        currentClientes.map((cliente, index) => (
+                          <TableRow 
+                            key={cliente.cpf_cnpj} 
+                            className={`hover:bg-gray-50 transition-colors ${
+                              index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                            }`}
+                          >
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-semibold text-blue-700">
+                                    {cliente.nome_cliente.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  {cliente.contratos.map((contrato, idx) => (
-                                    <Badge 
-                                      key={idx} 
-                                      variant="secondary" 
-                                      className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
-                                    >
-                                      {contrato}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  {cliente.codigos.map((codigo, idx) => (
-                                    <Badge 
-                                      key={idx} 
-                                      variant="secondary" 
-                                      className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
-                                    >
-                                      {codigo}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
-                                    <div className="flex items-center space-x-2">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                      <span className="text-xs text-gray-500">...</span>
-                                    </div>
-                                  ) : hasAnexos(cliente) ? (
-                                    <div className="flex flex-wrap gap-1">
-                                      {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
-                                        <Button
-                                          key={idx}
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => downloadAnexo(anexo.fileName)}
-                                          className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                          title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
-                                        >
-                                          {getFileIcon(anexo.fileName)}
-                                          <span className="ml-1 truncate max-w-16">
-                                            {anexo.fileName.split('.').pop()?.toUpperCase()}
-                                          </span>
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => buscarAnexos(cliente)}
-                                      className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
-                                      title="Buscar anexos"
-                                    >
-                                      <FileDown className="h-3 w-3 text-blue-600" />
-                                      <span className="ml-1 text-xs">Anexos</span>
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="w-auto">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 w-full"
-                                  title="Validações de contato"
-                                >
-                                  <Paperclip className="h-3 w-3 text-blue-600" />
-                                  <span className="ml-1 text-xs">Evidências</span>
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-12">
-                              <div className="flex flex-col items-center space-y-3">
-                                <AlertCircle className="h-12 w-12 text-gray-400" />
-                                <div>
-                                  <p className="text-base lg:text-lg font-medium text-gray-900">Nenhum cliente encontrado</p>
-                                  <p className="text-sm lg:text-base text-gray-600">
-                                    {searchTerm ? 'Tente ajustar os filtros de busca' : 'Este lote não possui clientes'}
-                                  </p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-900 text-xs lg:text-sm truncate">{cliente.nome_cliente}</p>
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {cliente.especies.map((especie, idx) => (
+                                      <Badge 
+                                        key={idx} 
+                                        variant="secondary" 
+                                        className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs px-1 py-0"
+                                      >
+                                        {especie}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
+                            <TableCell>
+                              <div className="font-mono text-xs lg:text-sm whitespace-nowrap">
+                                <span className="text-gray-900 font-medium">
+                                  {formatCpfCnpj(cliente.cpf_cnpj)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {cliente.contratos.map((contrato, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
+                                  >
+                                    {contrato}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {cliente.codigos.map((codigo, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
+                                  >
+                                    {codigo}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {cliente.codigos.map((codigo, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
+                                  >
+                                    {codigo}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
+                                  <div className="flex items-center space-x-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span className="text-xs text-gray-500">...</span>
+                                  </div>
+                                ) : hasAnexos(cliente) ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
+                                      <Button
+                                        key={idx}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => downloadAnexo(anexo.fileName)}
+                                        className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
+                                        title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                      >
+                                        {getFileIcon(anexo.fileName)}
+                                        <span className="ml-1 truncate max-w-16">
+                                          {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                        </span>
+                                      </Button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => buscarAnexos(cliente)}
+                                    className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
+                                    title="Buscar anexos"
+                                  >
+                                    <FileDown className="h-3 w-3 text-blue-600" />
+                                    <span className="ml-1 text-xs">Anexos</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-12">
+                            <div className="flex flex-col items-center space-y-3">
+                              <AlertCircle className="h-12 w-12 text-gray-400" />
+                              <div>
+                                <p className="text-base lg:text-lg font-medium text-gray-900">Nenhum cliente encontrado</p>
+                                <p className="text-sm lg:text-base text-gray-600">
+                                  {searchTerm ? 'Tente ajustar os filtros de busca' : 'Este lote não possui clientes'}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                    </div>
                 </div>
 
                 {/* Paginação */}
