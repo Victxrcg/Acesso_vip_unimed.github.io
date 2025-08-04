@@ -327,11 +327,11 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Gestão de Clientes</h1>
-          <p className="text-muted-foreground">Visualize e gerencie todos os clientes do sistema</p>
+          <h1 className="text-2xl lg:text-3xl font-bold">Gestão de Clientes</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Visualize e gerencie todos os clientes do sistema</p>
         </div>
         {/* Removidos os botões Exportar e Importar */}
       </div>
@@ -339,7 +339,7 @@ const Customers = () => {
       {/* Filtros */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
+          <CardTitle className="text-base lg:text-lg font-semibold">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -350,13 +350,13 @@ const Customers = () => {
                   placeholder="Buscar por nome, CPF ou credor..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
             </div>
             {/* Filtro por ação */}
             <Select value={acaoFilter} onValueChange={setAcaoFilter}>
-              <SelectTrigger className="w-full sm:w-44">
+              <SelectTrigger className="w-full sm:w-44 text-sm">
                 <SelectValue placeholder="Filtrar por ação" />
               </SelectTrigger>
               <SelectContent>
@@ -372,7 +372,7 @@ const Customers = () => {
       {/* Tabela de Clientes */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">
+          <CardTitle className="text-base lg:text-lg font-semibold">
             Lista de Clientes ({filteredCustomers.length})
           </CardTitle>
         </CardHeader>
@@ -381,17 +381,17 @@ const Customers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
-                  <TableHead>Credor</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Data da Ação</TableHead>
-                  <TableHead>Última Ação</TableHead>
-                  <TableHead className="whitespace-nowrap">
+                  <TableHead className="text-sm font-semibold">Cliente</TableHead>
+                  <TableHead className="text-sm font-semibold">CPF/CNPJ</TableHead>
+                  <TableHead className="text-sm font-semibold">Credor</TableHead>
+                  <TableHead className="text-sm font-semibold">Valor</TableHead>
+                  <TableHead className="text-sm font-semibold">Data da Ação</TableHead>
+                  <TableHead className="text-sm font-semibold">Última Ação</TableHead>
+                  <TableHead className="whitespace-nowrap text-sm font-semibold">
                     Áudios
                     <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className="text-sm font-semibold">
                     Anexos para download
                     <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
                   </TableHead>
@@ -406,18 +406,18 @@ const Customers = () => {
                           <User className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <div className="font-medium">{customer.nome}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-medium text-sm lg:text-base">{customer.nome}</div>
+                          <div className="text-xs lg:text-sm text-muted-foreground">
                             Mat: {customer.matricula}
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{customer.cpfCnpj}</TableCell>
-                    <TableCell>{customer.credor}</TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(customer.valorRecebido)}</TableCell>
-                    <TableCell>{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
-                    <TableCell>{customer.acao}</TableCell>
+                    <TableCell className="font-medium text-sm lg:text-base">{customer.cpfCnpj}</TableCell>
+                    <TableCell className="text-sm lg:text-base">{customer.credor}</TableCell>
+                    <TableCell className="font-semibold text-sm lg:text-base">{formatCurrency(customer.valorRecebido)}</TableCell>
+                    <TableCell className="text-sm lg:text-base">{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
+                    <TableCell className="text-sm lg:text-base">{customer.acao}</TableCell>
                     <TableCell>
                       <Button
                         type="button"
@@ -426,8 +426,8 @@ const Customers = () => {
                         onClick={() => handleAudiosClick(customer)}
                         className="flex items-center gap-2"
                       >
-                        <FileAudio className="h-4 w-4" />
-                        Áudios
+                        <FileAudio className="h-3 w-3" />
+                        <span className="text-xs">Áudios</span>
                       </Button>
                     </TableCell>
                     <TableCell>
@@ -437,8 +437,8 @@ const Customers = () => {
                         onClick={() => handleAttachmentsClick(customer)}
                         className="flex items-center gap-2"
                       >
-                        <Paperclip className="h-4 w-4" />
-                        <span>Anexos para download</span>
+                        <Paperclip className="h-3 w-3" />
+                        <span className="text-xs">Anexos</span>
                       </Button>
                     </TableCell>
                   </TableRow>
