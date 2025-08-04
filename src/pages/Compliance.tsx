@@ -295,12 +295,12 @@ const Compliance = () => {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header Principal */}
       <header className="bg-white border-b shadow-sm">
-        <div className="p-4 lg:p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Compliance</h1>
-          </div>
-          <p className="text-sm lg:text-base text-gray-600 mb-4">Gerencie os lotes de cancelamento</p>
+        <div className="p-2 sm:p-3 lg:p-4 xl:p-6">
+                      <div className="flex items-center space-x-2 mb-2 sm:mb-3 lg:mb-4">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Compliance</h1>
+            </div>
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-2 sm:mb-3 lg:mb-4">Gerencie os lotes de cancelamento</p>
           
           {/* Seção de Lotes Disponíveis */}
           {loadingLotes ? (
@@ -310,41 +310,41 @@ const Compliance = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Lotes Disponíveis</h3>
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900">Lotes Disponíveis</h3>
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs sm:text-sm">
                   {Array.isArray(lotes) ? lotes.length : 0}
                 </Badge>
               </div>
               
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {Array.isArray(lotes) && lotes.map((lote) => (
                   <button
                     key={lote.id}
-                    className={`flex-shrink-0 text-left p-3 rounded-lg border transition-all duration-200 min-w-[200px] ${
+                    className={`flex-shrink-0 text-left p-2 sm:p-3 rounded-lg border transition-all duration-200 min-w-[180px] sm:min-w-[200px] ${
                       selectedLote === lote.id
                         ? "border-blue-500 bg-blue-50 shadow-md"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     }`}
                     onClick={() => setSelectedLote(lote.id)}
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="font-semibold text-gray-900 text-sm">
+                    <div className="flex items-start justify-between mb-1 sm:mb-2">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
+                        <span className="font-semibold text-gray-900 text-xs sm:text-sm">
                           {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                       {selectedLote === lote.id && (
-                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
                       )}
                     </div>
                     
-                    <div className="text-xs text-gray-600 mb-2 truncate">
+                    <div className="text-xs text-gray-600 mb-1 sm:mb-2 truncate">
                       {lote.nome_arquivo}
                     </div>
                     
-                    <div className="flex items-center space-x-3 text-xs text-gray-500">
+                    <div className="flex items-center space-x-2 sm:space-x-3 text-xs text-gray-500">
                       <div className="flex items-center space-x-1">
                         <Users className="h-3 w-3" />
                         <span>{lote.total_registros || 0} registros</span>
@@ -363,23 +363,23 @@ const Compliance = () => {
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
+      <main className="flex-1 p-2 sm:p-3 lg:p-4 xl:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-                      <div className="flex flex-col h-full space-y-4">
+                      <div className="flex flex-col h-full space-y-2 sm:space-y-3 lg:space-y-4">
             {/* Header do Lote */}
-            <div className="bg-white rounded-xl shadow-sm border p-2 lg:p-3 mt-1">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
-                <div>
-                  <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
-                    Lote {new Date(selectedLoteData.data_lote).toLocaleDateString('pt-BR')}
-                  </h1>
-                  <p className="text-sm lg:text-base text-gray-600 truncate">{selectedLoteData.nome_arquivo}</p>
-                </div>
+                          <div className="bg-white rounded-xl shadow-sm border p-2 sm:p-3 lg:p-4 mt-1">
+                              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-2 sm:mb-3 lg:mb-4 gap-2 sm:gap-3 lg:gap-4">
+                  <div>
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1">
+                      Lote {new Date(selectedLoteData.data_lote).toLocaleDateString('pt-BR')}
+                    </h1>
+                    <p className="text-xs sm:text-sm lg:text-base text-gray-600 truncate">{selectedLoteData.nome_arquivo}</p>
+                  </div>
 
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 lg:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 lg:gap-3">
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -445,17 +445,17 @@ const Compliance = () => {
             </div>
 
             {/* Filtros e Busca */}
-            <div className="bg-white rounded-xl shadow-sm border p-2">
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar por nome ou CPF/CNPJ..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            <div className="bg-white rounded-xl shadow-sm border p-2 sm:p-3">
+              <div className="flex flex-col lg:flex-row gap-2 sm:gap-3 lg:gap-4">
+                                  <div className="flex-1 relative">
+                    <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar por nome ou CPF/CNPJ..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 sm:pl-10 text-sm"
+                    />
+                  </div>
                 <div className="flex items-center space-x-2">
                   <Filter className="h-4 w-4 text-gray-500" />
                   <select
@@ -490,7 +490,7 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border flex-1 flex flex-col">
-                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '1200px' }}>
+                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                     <Table className="w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
