@@ -472,7 +472,7 @@ const Compliance = () => {
             </div>
 
             {/* Tabela de Clientes */}
-            <Card className="shadow-sm flex-1 flex flex-col overflow-hidden">
+            <Card className="shadow-sm flex-1 flex flex-col">
               <CardHeader>
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                   <CardTitle className="text-lg font-semibold text-gray-900">
@@ -489,9 +489,9 @@ const Compliance = () => {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
-                  <div className="overflow-x-auto">
-                    <Table className="flex-1 min-w-full">
+                <div className="rounded-lg border flex-1 flex flex-col">
+                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '400px' }}>
+                    <Table className="w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
                           <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
@@ -501,7 +501,7 @@ const Compliance = () => {
                           <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
                         </TableRow>
                       </TableHeader>
-                    <TableBody className="flex-1">
+                                          <TableBody>
                       {loadingClientes ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-12">
