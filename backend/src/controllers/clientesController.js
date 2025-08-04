@@ -20,7 +20,6 @@ exports.listarClientesDoLote = async (req, res) => {
         valor_atual,
         dias_atraso,
         data_vencimento,
-        status,
         created_at,
         updated_at
       FROM clientes_cancelamentos
