@@ -366,9 +366,9 @@ const Compliance = () => {
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-2 lg:p-4 flex flex-col overflow-hidden">
+      <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-                      <div className="flex flex-col h-full space-y-4">
+                      <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
@@ -493,15 +493,15 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
-                  <div className="overflow-x-auto min-w-0">
-                    <Table className="w-full">
+                  <div className="overflow-x-auto">
+                    <Table className="flex-1 min-w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
-                          <TableHead className="font-semibold text-gray-900 w-[25%]">Cliente & Espécie</TableHead>
-                          <TableHead className="font-semibold text-gray-900 w-[20%] whitespace-nowrap">CPF/CNPJ</TableHead>
-                          <TableHead className="font-semibold text-gray-900 w-[15%]">Contrato</TableHead>
-                          <TableHead className="font-semibold text-gray-900 w-[15%]">Títulos</TableHead>
-                          <TableHead className="font-semibold text-gray-900 w-[25%]">Anexos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[120px] whitespace-nowrap">CPF/CNPJ</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Contrato</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Títulos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
                         </TableRow>
                       </TableHeader>
                     <TableBody className="flex-1">
@@ -522,15 +522,15 @@ const Compliance = () => {
                               index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                             }`}
                           >
-                            <TableCell className="w-[25%]">
+                            <TableCell>
                               <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <span className="text-xs font-semibold text-blue-700">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-semibold text-blue-700">
                                     {cliente.nome_cliente.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-gray-900 text-xs truncate">{cliente.nome_cliente}</p>
+                                  <p className="font-semibold text-gray-900 text-xs lg:text-sm truncate">{cliente.nome_cliente}</p>
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {cliente.especies.map((especie, idx) => (
                                       <Badge 
@@ -545,14 +545,14 @@ const Compliance = () => {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%]">
-                              <div className="font-mono text-xs whitespace-nowrap">
+                            <TableCell>
+                              <div className="font-mono text-xs lg:text-sm whitespace-nowrap">
                                 <span className="text-gray-900 font-medium">
                                   {formatCpfCnpj(cliente.cpf_cnpj)}
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[15%]">
+                            <TableCell>
                               <div className="space-y-1">
                                 {cliente.contratos.map((contrato, idx) => (
                                   <Badge 
@@ -565,7 +565,7 @@ const Compliance = () => {
                                 ))}
                               </div>
                             </TableCell>
-                            <TableCell className="w-[15%]">
+                            <TableCell>
                               <div className="space-y-1">
                                 {cliente.codigos.map((codigo, idx) => (
                                   <Badge 
@@ -578,7 +578,7 @@ const Compliance = () => {
                                 ))}
                               </div>
                             </TableCell>
-                            <TableCell className="w-[25%]">
+                            <TableCell>
                               <div className="flex flex-wrap gap-1">
                                 {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
                                   <div className="flex items-center space-x-2">
