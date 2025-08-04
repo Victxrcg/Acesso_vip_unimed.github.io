@@ -28,7 +28,8 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('https://acessovipunimedgithubio-production.up.railway.app/api/clientes')
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${API_BASE}/api/clientes`)
       .then(res => res.json())
       .then(data => setClientesCount(data.length))
       .catch(() => setClientesCount(0));
