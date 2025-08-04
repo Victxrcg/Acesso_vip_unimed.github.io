@@ -4,8 +4,8 @@ const mysql = require('mysql2/promise');
 const dbConfig = {
   host: process.env.DB_HOST || '127.0.0.1',
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'auditaai_user',
-  password: process.env.DB_PASS || '123Mudar',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || 'portes2025',
   database: process.env.DB_NAME || 'auditaai',
   waitForConnections: true,
   connectionLimit: 10,

@@ -282,81 +282,82 @@ const Compliance = () => {
   const anexosCount = clientes.filter(c => hasAnexos(c)).length;
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar de Lotes */}
-      <aside className="w-80 border-r bg-white shadow-sm hidden lg:block">
-        <div className="p-6 border-b">
-          <div className="flex items-center space-x-2 mb-2">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header Principal */}
+      <header className="bg-white border-b shadow-sm">
+        <div className="p-4 lg:p-6">
+          <div className="flex items-center space-x-2 mb-4">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            <h2 className="text-xl font-bold text-gray-900">Compliance</h2>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Compliance</h1>
           </div>
-          <p className="text-sm text-gray-600">Gerencie os lotes de cancelamento</p>
-        </div>
-
-        <div className="p-4">
+          <p className="text-sm lg:text-base text-gray-600 mb-4">Gerencie os lotes de cancelamento</p>
+          
+          {/* Seção de Lotes Disponíveis */}
           {loadingLotes ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-sm text-gray-600 mt-3">Carregando lotes...</p>
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">Carregando lotes...</p>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">Lotes Disponíveis</h3>
                 <Badge variant="secondary" className="bg-blue-50 text-blue-700">
                   {Array.isArray(lotes) ? lotes.length : 0}
                 </Badge>
               </div>
               
-              {Array.isArray(lotes) && lotes.map((lote) => (
-                <button
-                  key={lote.id}
-                  className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
-                    selectedLote === lote.id
-                      ? "border-blue-500 bg-blue-50 shadow-md"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
-                  onClick={() => setSelectedLote(lote.id)}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="font-semibold text-gray-900">
-                        {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
-                      </span>
+              <div className="flex flex-wrap gap-3">
+                {Array.isArray(lotes) && lotes.map((lote) => (
+                  <button
+                    key={lote.id}
+                    className={`flex-shrink-0 text-left p-3 rounded-lg border transition-all duration-200 min-w-[200px] ${
+                      selectedLote === lote.id
+                        ? "border-blue-500 bg-blue-50 shadow-md"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                    onClick={() => setSelectedLote(lote.id)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="font-semibold text-gray-900 text-sm">
+                          {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      {selectedLote === lote.id && (
+                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                      )}
                     </div>
-                    {selectedLote === lote.id && (
-                      <CheckCircle className="h-4 w-4 text-blue-600" />
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-gray-600 mb-2 truncate">
-                    {lote.nome_arquivo}
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <Users className="h-3 w-3" />
-                      <span>{lote.total_registros || 0} registros</span>
+                    
+                    <div className="text-xs text-gray-600 mb-2 truncate">
+                      {lote.nome_arquivo}
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <FileText className="h-3 w-3" />
-                      <span>Lote #{lote.id}</span>
+                    
+                    <div className="flex items-center space-x-3 text-xs text-gray-500">
+                      <div className="flex items-center space-x-1">
+                        <Users className="h-3 w-3" />
+                        <span>{lote.total_registros || 0} registros</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <FileText className="h-3 w-3" />
+                        <span>Lote #{lote.id}</span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
-      </aside>
+      </header>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-4 lg:p-6 flex flex-col h-full">
+      <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-          <div className="flex flex-col h-full space-y-6">
+          <div className="flex flex-col h-full space-y-4 lg:space-y-6">
             {/* Header do Lote */}
-            <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6">
+            <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
                 <div>
                   <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
@@ -745,7 +746,7 @@ const Compliance = () => {
             <div className="text-center">
               <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Selecione um Lote</h3>
-              <p className="text-gray-600">Escolha um lote na sidebar para visualizar os clientes</p>
+              <p className="text-gray-600">Escolha um lote acima para visualizar os clientes</p>
             </div>
           </div>
         )}
