@@ -23,17 +23,8 @@ import {
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [clientesCount, setClientesCount] = useState<number>(0);
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    fetch(`${API_BASE}/api/clientes`)
-      .then(res => res.json())
-      .then(data => setClientesCount(data.length))
-      .catch(() => setClientesCount(0));
-  }, []);
 
   const menuItems = [
     { 
@@ -46,7 +37,7 @@ const Sidebar = () => {
       name: "Clientes", 
       icon: Users, 
       path: "/customers",
-      badge: clientesCount > 0 ? clientesCount.toString() : null
+      badge: null
     },
     { 
       name: "Compliance", 
