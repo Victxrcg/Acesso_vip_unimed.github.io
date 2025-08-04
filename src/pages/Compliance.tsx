@@ -633,7 +633,7 @@ const Compliance = () => {
                                 title="Validações de contato"
                               >
                                 <Paperclip className="h-3 w-3 text-blue-600" />
-                                <span className="ml-1 text-xs">Validações</span>
+                                <span className="ml-1 text-xs">Evidências</span>
                               </Button>
                             </TableCell>
                           </TableRow>
