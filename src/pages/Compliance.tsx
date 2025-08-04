@@ -138,11 +138,24 @@ const Compliance = () => {
     cliente.cpf_cnpj.includes(searchTerm)
   );
 
+  // Debug: Log dos dados
+  console.log('🔍 DEBUG - Total de clientes:', clientes.length);
+  console.log('🔍 DEBUG - Termo de busca:', searchTerm);
+  console.log('🔍 DEBUG - Clientes filtrados:', filteredClientes.length);
+  console.log('🔍 DEBUG - Página atual:', currentPage);
+  console.log('🔍 DEBUG - Itens por página:', itemsPerPage);
+
   // Calcular paginação
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentClientes = filteredClientes.slice(startIndex, endIndex);
+  
+  // Debug: Log da paginação
+  console.log('🔍 DEBUG - Clientes na página atual:', currentClientes.length);
+  console.log('🔍 DEBUG - Total de páginas:', totalPages);
+  console.log('🔍 DEBUG - Índice inicial:', startIndex);
+  console.log('🔍 DEBUG - Índice final:', endIndex);
 
   // Resetar página quando mudar filtros
   useEffect(() => {
@@ -353,9 +366,9 @@ const Compliance = () => {
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
+      <main className="flex-1 p-2 lg:p-4 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-          <div className="flex flex-col h-full space-y-6">
+                      <div className="flex flex-col h-full space-y-4">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
@@ -374,7 +387,7 @@ const Compliance = () => {
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Clientes Únicos</p>
+                      <p className="text-sm font-medium text-blue-900">Clientes </p>
                       <p className="text-2xl font-bold text-blue-700">{clientes.length}</p>
                     </div>
                   </div>
@@ -480,15 +493,15 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
-                  <div className="overflow-x-auto">
-                    <Table className="flex-1 min-w-full">
+                  <div className="overflow-x-auto min-w-0">
+                    <Table className="w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
-                          <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[120px] whitespace-nowrap">CPF/CNPJ</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Contrato</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Títulos</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 w-[25%]">Cliente & Espécie</TableHead>
+                          <TableHead className="font-semibold text-gray-900 w-[20%] whitespace-nowrap">CPF/CNPJ</TableHead>
+                          <TableHead className="font-semibold text-gray-900 w-[15%]">Contrato</TableHead>
+                          <TableHead className="font-semibold text-gray-900 w-[15%]">Títulos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 w-[25%]">Anexos</TableHead>
                         </TableRow>
                       </TableHeader>
                     <TableBody className="flex-1">
@@ -509,15 +522,15 @@ const Compliance = () => {
                               index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                             }`}
                           >
-                            <TableCell>
+                            <TableCell className="w-[25%]">
                               <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <span className="text-sm font-semibold text-blue-700">
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-700">
                                     {cliente.nome_cliente.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-gray-900 text-xs lg:text-sm truncate">{cliente.nome_cliente}</p>
+                                  <p className="font-semibold text-gray-900 text-xs truncate">{cliente.nome_cliente}</p>
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {cliente.especies.map((especie, idx) => (
                                       <Badge 
@@ -532,14 +545,14 @@ const Compliance = () => {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="font-mono text-xs lg:text-sm whitespace-nowrap">
+                            <TableCell className="w-[20%]">
+                              <div className="font-mono text-xs whitespace-nowrap">
                                 <span className="text-gray-900 font-medium">
                                   {formatCpfCnpj(cliente.cpf_cnpj)}
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="w-[15%]">
                               <div className="space-y-1">
                                 {cliente.contratos.map((contrato, idx) => (
                                   <Badge 
@@ -552,7 +565,7 @@ const Compliance = () => {
                                 ))}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="w-[15%]">
                               <div className="space-y-1">
                                 {cliente.codigos.map((codigo, idx) => (
                                   <Badge 
@@ -565,20 +578,7 @@ const Compliance = () => {
                                 ))}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {cliente.codigos.map((codigo, idx) => (
-                                  <Badge 
-                                    key={idx} 
-                                    variant="secondary" 
-                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
-                                  >
-                                    {codigo}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell>
+                            <TableCell className="w-[25%]">
                               <div className="flex flex-wrap gap-1">
                                 {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
                                   <div className="flex items-center space-x-2">
