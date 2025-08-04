@@ -82,11 +82,21 @@ const Compliance = () => {
         })
         .then(data => {
           console.log('CLIENTES DO LOTE (RAW):', data);
-          console.log('Quantidade de clientes:', data.length);
+          console.log('Tipo de dados:', typeof data);
+          console.log('É array?', Array.isArray(data));
+          console.log('Quantidade de clientes:', Array.isArray(data) ? data.length : 'N/A');
+          
+          if (!Array.isArray(data)) {
+            console.error('❌ Dados não são um array:', data);
+            setClientes([]);
+            setLoadingClientes(false);
+            return;
+          }
           
           if (data.length === 0) {
             console.log('Nenhum cliente encontrado para este lote');
             setClientes([]);
+            setLoadingClientes(false);
             return;
           }
           
@@ -548,19 +558,6 @@ const Compliance = () => {
                                     className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
                                   >
                                     {contrato}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {cliente.codigos.map((codigo, idx) => (
-                                  <Badge 
-                                    key={idx} 
-                                    variant="secondary" 
-                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
-                                  >
-                                    {codigo}
                                   </Badge>
                                 ))}
                               </div>
