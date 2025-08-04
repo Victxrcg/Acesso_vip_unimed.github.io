@@ -30,7 +30,7 @@ const Compliance = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(25);
+  const [itemsPerPage] = useState(35);
   const [anexos, setAnexos] = useState({}); // Estado para armazenar anexos por cliente
   const [loadingAnexos, setLoadingAnexos] = useState({}); // Estado para loading de anexos
 
@@ -367,7 +367,7 @@ const Compliance = () => {
         {selectedLote && selectedLoteData ? (
                       <div className="flex flex-col h-full space-y-4">
             {/* Header do Lote */}
-            <div className="bg-white rounded-xl shadow-sm border p-3 lg:p-4 mt-2">
+            <div className="bg-white rounded-xl shadow-sm border p-2 lg:p-3 mt-1">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
                 <div>
                   <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
@@ -379,7 +379,7 @@ const Compliance = () => {
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 lg:gap-3">
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -445,7 +445,7 @@ const Compliance = () => {
             </div>
 
             {/* Filtros e Busca */}
-            <div className="bg-white rounded-xl shadow-sm border p-3">
+            <div className="bg-white rounded-xl shadow-sm border p-2">
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -490,7 +490,7 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border flex-1 flex flex-col">
-                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '900px' }}>
+                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '1200px' }}>
                     <Table className="w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
