@@ -1054,8 +1054,7 @@ app.get('/api/debug/lote/:loteId/clientes', async (req, res) => {
         valor_atual,
         dias_atraso,
         data_vencimento,
-        created_at,
-        updated_at
+        created_at
       FROM clientes_cancelamentos
       WHERE lote_id = ?
       ORDER BY nome_cliente
