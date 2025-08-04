@@ -182,14 +182,14 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Resumo Financeiro</CardTitle>
+                <CardTitle>Resumo </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Removido Total de Comissões */}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Média de Atraso</span>
+                  <span className="text-sm font-medium">Clientes comMédia de Atraso</span>
                   <span className="text-lg font-bold">{metrics.mediaAtraso} dias</span>
-                  
+
                 </div>
               </CardContent>
             </Card>
