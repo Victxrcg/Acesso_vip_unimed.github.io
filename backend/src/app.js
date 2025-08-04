@@ -1041,39 +1041,24 @@ app.get('/api/debug/clientes', async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Buscar todos os clientes com informações do lote
+    // Buscar alguns clientes com seus números de contrato
     const [clientes] = await pool.query(`
       SELECT 
-        cc.id,
-        cc.cpf_cnpj,
-        cc.nome_cliente,
-        cc.numero_contrato,
-        cc.lote_id,
-        lc.nome_arquivo as lote_nome,
-        lc.data_lote as lote_data
-      FROM clientes_cancelamentos cc
-      LEFT JOIN lotes_cancelamento lc ON cc.lote_id = lc.id
-      ORDER BY cc.id DESC
-      LIMIT 20
+        id,
+        cpf_cnpj,
+        nome_cliente,
+        numero_contrato
+      FROM clientes_cancelamentos 
+      ORDER BY id DESC
+      LIMIT 10
     `);
     
     console.log('📋 Clientes encontrados:', clientes.length);
-    
-    // Contar total de clientes por lote
-    const [contagemPorLote] = await pool.query(`
-      SELECT 
-        lote_id,
-        COUNT(*) as total_clientes
-      FROM clientes_cancelamentos
-      GROUP BY lote_id
-      ORDER BY lote_id DESC
-    `);
     
     res.json({
       success: true,
       total_clientes: clientes.length,
       clientes: clientes,
-      contagem_por_lote: contagemPorLote,
       message: 'Lista de clientes para teste'
     });
     

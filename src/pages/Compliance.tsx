@@ -138,24 +138,11 @@ const Compliance = () => {
     cliente.cpf_cnpj.includes(searchTerm)
   );
 
-  // Debug: Log dos dados
-  console.log('🔍 DEBUG - Total de clientes:', clientes.length);
-  console.log('🔍 DEBUG - Termo de busca:', searchTerm);
-  console.log('🔍 DEBUG - Clientes filtrados:', filteredClientes.length);
-  console.log('🔍 DEBUG - Página atual:', currentPage);
-  console.log('🔍 DEBUG - Itens por página:', itemsPerPage);
-
   // Calcular paginação
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentClientes = filteredClientes.slice(startIndex, endIndex);
-  
-  // Debug: Log da paginação
-  console.log('🔍 DEBUG - Clientes na página atual:', currentClientes.length);
-  console.log('🔍 DEBUG - Total de páginas:', totalPages);
-  console.log('🔍 DEBUG - Índice inicial:', startIndex);
-  console.log('🔍 DEBUG - Índice final:', endIndex);
 
   // Resetar página quando mudar filtros
   useEffect(() => {
@@ -368,7 +355,7 @@ const Compliance = () => {
       {/* Conteúdo Principal */}
       <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-                      <div className="flex flex-col h-full space-y-6">
+          <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
@@ -387,7 +374,7 @@ const Compliance = () => {
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Clientes </p>
+                      <p className="text-sm font-medium text-blue-900">Clientes Únicos</p>
                       <p className="text-2xl font-bold text-blue-700">{clientes.length}</p>
                     </div>
                   </div>
@@ -561,6 +548,19 @@ const Compliance = () => {
                                     className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
                                   >
                                     {contrato}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {cliente.codigos.map((codigo, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
+                                  >
+                                    {codigo}
                                   </Badge>
                                 ))}
                               </div>
