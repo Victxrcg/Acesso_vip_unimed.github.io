@@ -81,7 +81,7 @@ const Sidebar = () => {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-sidebar-foreground">Compliance Unimed</h1>
-                <p className="text-sm text-sidebar-foreground"> Normativa ANS nº 5G3 </p>      
+                <p className="text-sm text-sidebar-foreground"> Normativa ANS nº 593 </p>      
               </div>
             </div>
           )}
