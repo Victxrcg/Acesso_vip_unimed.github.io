@@ -284,7 +284,7 @@ const Compliance = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar de Lotes */}
-      <aside className="w-80 border-r bg-white shadow-sm">
+      <aside className="w-80 border-r bg-white shadow-sm hidden lg:block">
         <div className="p-6 border-b">
           <div className="flex items-center space-x-2 mb-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -352,23 +352,23 @@ const Compliance = () => {
       </aside>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 p-6 flex flex-col h-full">
+      <main className="flex-1 p-4 lg:p-6 flex flex-col h-full">
         {selectedLote && selectedLoteData ? (
           <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                  <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
                     Lote {new Date(selectedLoteData.data_lote).toLocaleDateString('pt-BR')}
                   </h1>
-                  <p className="text-gray-600">{selectedLoteData.nome_arquivo}</p>
+                  <p className="text-sm lg:text-base text-gray-600 truncate">{selectedLoteData.nome_arquivo}</p>
                 </div>
 
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -443,7 +443,7 @@ const Compliance = () => {
 
             {/* Filtros e Busca */}
             <div className="bg-white rounded-xl shadow-sm border p-4">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -469,9 +469,9 @@ const Compliance = () => {
             </div>
 
             {/* Tabela de Clientes */}
-            <Card className="shadow-sm flex-1 flex flex-col">
+            <Card className="shadow-sm flex-1 flex flex-col overflow-hidden">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                   <CardTitle className="text-lg font-semibold text-gray-900">
                     Lista de Clientes
                   </CardTitle>
@@ -487,24 +487,25 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border overflow-hidden flex-1 flex flex-col">
-                  <Table className="flex-1">
-                    <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold text-gray-900">Cliente & Espécie</TableHead>
-                        <TableHead className="font-semibold text-gray-900">CPF/CNPJ</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Contrato</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Títulos</TableHead>
-                        <TableHead className="font-semibold text-gray-900">Anexos</TableHead>
-                        <TableHead className="font-semibold text-gray-900 whitespace-nowrap w-auto">Validações de contato</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <div className="overflow-x-auto">
+                    <Table className="flex-1 min-w-full">
+                                          <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[120px] whitespace-nowrap">CPF/CNPJ</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Contrato</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[100px]">Títulos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
+                          <TableHead className="font-semibold text-gray-900 min-w-[150px] whitespace-nowrap">Validações de contato</TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody className="flex-1">
                       {loadingClientes ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-12">
                             <div className="flex flex-col items-center space-y-3">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                              <p className="text-gray-600">Carregando clientes...</p>
+                              <p className="text-sm lg:text-base text-gray-600">Carregando clientes...</p>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -524,13 +525,13 @@ const Compliance = () => {
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-gray-900 text-sm truncate">{cliente.nome_cliente}</p>
+                                  <p className="font-semibold text-gray-900 text-xs lg:text-sm truncate">{cliente.nome_cliente}</p>
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {cliente.especies.map((especie, idx) => (
                                       <Badge 
                                         key={idx} 
                                         variant="secondary" 
-                                        className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
+                                        className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs px-1 py-0"
                                       >
                                         {especie}
                                       </Badge>
@@ -540,7 +541,7 @@ const Compliance = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="font-mono text-sm whitespace-nowrap">
+                              <div className="font-mono text-xs lg:text-sm whitespace-nowrap">
                                 <span className="text-gray-900 font-medium">
                                   {formatCpfCnpj(cliente.cpf_cnpj)}
                                 </span>
@@ -552,7 +553,7 @@ const Compliance = () => {
                                   <Badge 
                                     key={idx} 
                                     variant="secondary" 
-                                    className="bg-blue-50 text-blue-700 border-blue-200 text-sm"
+                                    className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
                                   >
                                     {contrato}
                                   </Badge>
@@ -565,7 +566,7 @@ const Compliance = () => {
                                   <Badge 
                                     key={idx} 
                                     variant="secondary" 
-                                    className="bg-sky-50 text-sky-700 border-sky-200 text-sm"
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
                                   >
                                     {codigo}
                                   </Badge>
@@ -578,7 +579,7 @@ const Compliance = () => {
                                   <Badge 
                                     key={idx} 
                                     variant="secondary" 
-                                    className="bg-sky-50 text-sky-700 border-sky-200 text-sm"
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
                                   >
                                     {codigo}
                                   </Badge>
@@ -590,7 +591,7 @@ const Compliance = () => {
                                 {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
                                   <div className="flex items-center space-x-2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                    <span className="text-xs text-gray-500">Carregando...</span>
+                                    <span className="text-xs text-gray-500">...</span>
                                   </div>
                                 ) : hasAnexos(cliente) ? (
                                   <div className="flex flex-wrap gap-1">
@@ -604,7 +605,7 @@ const Compliance = () => {
                                         title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
                                       >
                                         {getFileIcon(anexo.fileName)}
-                                        <span className="ml-1 truncate max-w-20">
+                                        <span className="ml-1 truncate max-w-16">
                                           {anexo.fileName.split('.').pop()?.toUpperCase()}
                                         </span>
                                       </Button>
@@ -619,7 +620,7 @@ const Compliance = () => {
                                     title="Buscar anexos"
                                   >
                                     <FileDown className="h-3 w-3 text-blue-600" />
-                                    <span className="ml-1">Anexos</span>
+                                    <span className="ml-1 text-xs">Anexos</span>
                                   </Button>
                                 )}
                               </div>
@@ -632,7 +633,7 @@ const Compliance = () => {
                                 title="Validações de contato"
                               >
                                 <Paperclip className="h-3 w-3 text-blue-600" />
-                                <span className="ml-1">Validações</span>
+                                <span className="ml-1 text-xs">Validações</span>
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -643,8 +644,8 @@ const Compliance = () => {
                             <div className="flex flex-col items-center space-y-3">
                               <AlertCircle className="h-12 w-12 text-gray-400" />
                               <div>
-                                <p className="text-lg font-medium text-gray-900">Nenhum cliente encontrado</p>
-                                <p className="text-gray-600">
+                                <p className="text-base lg:text-lg font-medium text-gray-900">Nenhum cliente encontrado</p>
+                                <p className="text-sm lg:text-base text-gray-600">
                                   {searchTerm ? 'Tente ajustar os filtros de busca' : 'Este lote não possui clientes'}
                                 </p>
                               </div>
@@ -654,18 +655,19 @@ const Compliance = () => {
                       )}
                     </TableBody>
                   </Table>
+                    </div>
                 </div>
 
                 {/* Paginação */}
                 {filteredClientes.length > 0 && (
-                  <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-6 py-4 border-t bg-gray-50 gap-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span>
+                      <span className="text-center lg:text-left text-xs lg:text-sm">
                         Mostrando {startIndex + 1} a {Math.min(endIndex, filteredClientes.length)} de {filteredClientes.length} clientes
                       </span>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-center lg:justify-end space-x-2">
                       <Button
                         variant="outline"
                         size="sm"

@@ -122,40 +122,50 @@ const Dashboard = () => {
         {/* Removidos os botões Sistema Online e Relatório */}
       </div>
       {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
         <Card className="metric-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes Auditados</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-base font-medium">Total de Clientes Auditados</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalClientes.toLocaleString()}</div>
+            <div className="text-3xl font-bold">{metrics.totalClientes.toLocaleString()}</div>
           </CardContent>
         </Card>
 
         <Card className="metric-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Auditado Recebido</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-base font-medium">Valor Auditado Recebido</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalReceitas)}</div>
+            <div className="text-3xl font-bold">{formatCurrency(metrics.totalReceitas)}</div>
           </CardContent>
         </Card>
 
         {/* Card fictício Lote_001 */}
         <Card className="metric-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-1 font-medium">Lote_001_Unimed</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-base font-medium truncate">Lote_001_Unimed</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-sm font-semibold">Assunto:</div>
-            <div className="text-lg font-semi mb-1">RELAÇÃO DE ÊXITO NA COBRANÇA DE FATURAS INADIMPLENTES UNIMED CAMPO GRANDE-MS - FORNECEDOR PARCEIRO: PORTES.</div>
-            <div className="text-sm font-semibold">Email:</div>
-            <div className="text-xl font-bold mb-1">tiago.fruhauf@unimedcg.coop.br</div>
-            <div className="text-sm font-semibold">Data:</div>
-            <div className="text-l font-bold">15/07/2025</div>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-gray-600">Assunto:</div>
+              <div className="text-sm leading-relaxed break-words">
+                RELAÇÃO DE ÊXITO NA COBRANÇA DE FATURAS INADIMPLENTES UNIMED CAMPO GRANDE-MS - FORNECEDOR PARCEIRO: PORTES.
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-gray-600">Email:</div>
+              <div className="text-sm font-medium break-all">
+                tiago.fruhauf@unimedcg.coop.br
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-gray-600">Data:</div>
+              <div className="text-sm font-medium">15/07/2025</div>
+            </div>
           </CardContent>
         </Card>
       </div>
