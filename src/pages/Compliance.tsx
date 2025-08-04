@@ -490,7 +490,7 @@ const Compliance = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="rounded-lg border flex-1 flex flex-col">
-                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '600px' }}>
+                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '900px' }}>
                     <Table className="w-full">
                                           <TableHeader>
                         <TableRow className="bg-gray-50">
