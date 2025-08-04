@@ -355,7 +355,7 @@ const Compliance = () => {
       {/* Conteúdo Principal */}
       <main className="flex-1 p-4 lg:p-6 flex flex-col overflow-hidden">
         {selectedLote && selectedLoteData ? (
-          <div className="flex flex-col h-full space-y-4 lg:space-y-6">
+          <div className="flex flex-col h-full space-y-6">
             {/* Header do Lote */}
             <div className="bg-white rounded-xl shadow-sm border p-4 lg:p-6 mt-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
@@ -369,7 +369,7 @@ const Compliance = () => {
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -410,15 +410,7 @@ const Compliance = () => {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center space-x-2">
-                    <Paperclip className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Com Anexos</p>
-                      <p className="text-2xl font-bold text-blue-700">{anexosCount}</p>
-                    </div>
-                  </div>
-                </div>
+
                 
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
                   <div className="flex items-center space-x-2">
@@ -497,13 +489,12 @@ const Compliance = () => {
                           <TableHead className="font-semibold text-gray-900 min-w-[100px]">Contrato</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[100px]">Títulos</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
-                          <TableHead className="font-semibold text-gray-900 min-w-[150px] whitespace-nowrap">Validações de contato</TableHead>
                         </TableRow>
                       </TableHeader>
                     <TableBody className="flex-1">
                       {loadingClientes ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
+                          <TableCell colSpan={6} className="text-center py-12">
                             <div className="flex flex-col items-center space-y-3">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                               <p className="text-sm lg:text-base text-gray-600">Carregando clientes...</p>
@@ -626,22 +617,12 @@ const Compliance = () => {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="w-auto">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100 w-full"
-                                title="Validações de contato"
-                              >
-                                <Paperclip className="h-3 w-3 text-blue-600" />
-                                <span className="ml-1 text-xs">Evidências</span>
-                              </Button>
-                            </TableCell>
+
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
+                          <TableCell colSpan={6} className="text-center py-12">
                             <div className="flex flex-col items-center space-y-3">
                               <AlertCircle className="h-12 w-12 text-gray-400" />
                               <div>
