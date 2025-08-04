@@ -187,7 +187,7 @@ const Dashboard = () => {
               <CardContent className="space-y-4">
                 {/* Removido Total de Comissões */}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Clientes comMédia de Atraso</span>
+                  <span className="text-sm font-medium">Média de Atraso</span>
                   <span className="text-lg font-bold">{metrics.mediaAtraso} dias</span>
 
                 </div>
