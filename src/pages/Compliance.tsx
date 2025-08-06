@@ -489,10 +489,146 @@ const Compliance = () => {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="rounded-lg border flex-1 flex flex-col">
+                {/* Mobile: Cards Layout */}
+                <div className="block md:hidden space-y-3">
+                  {loadingClientes ? (
+                    <div className="text-center py-12">
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <p className="text-sm text-gray-600">Carregando clientes...</p>
+                      </div>
+                    </div>
+                  ) : currentClientes.length > 0 ? (
+                    currentClientes.map((cliente, index) => (
+                      <Card key={cliente.cpf_cnpj} className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            {/* Header com avatar e nome */}
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-semibold text-blue-700">
+                                  {cliente.nome_cliente.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 text-sm truncate">{cliente.nome_cliente}</p>
+                                <p className="font-mono text-xs text-gray-600">{formatCpfCnpj(cliente.cpf_cnpj)}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Espécies */}
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">Espécies:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {cliente.especies.map((especie, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs px-1 py-0"
+                                  >
+                                    {especie}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Contratos */}
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">Contratos:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {cliente.contratos.map((contrato, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-1 py-0"
+                                  >
+                                    {contrato}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Títulos */}
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">Títulos:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {cliente.codigos.map((codigo, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="bg-sky-50 text-sky-700 border-sky-200 text-xs px-1 py-0"
+                                  >
+                                    {codigo}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Anexos */}
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">Anexos:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
+                                  <div className="flex items-center space-x-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span className="text-xs text-gray-500">Carregando...</span>
+                                  </div>
+                                ) : hasAnexos(cliente) ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
+                                      <Button
+                                        key={idx}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => downloadAnexo(anexo.fileName)}
+                                        className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
+                                        title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                      >
+                                        {getFileIcon(anexo.fileName)}
+                                        <span className="ml-1 truncate max-w-16">
+                                          {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                        </span>
+                                      </Button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => buscarAnexos(cliente)}
+                                    className="h-6 px-2 text-xs bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:from-blue-100 hover:to-green-100"
+                                    title="Buscar anexos"
+                                  >
+                                    <FileDown className="h-3 w-3 text-blue-600" />
+                                    <span className="ml-1 text-xs">Buscar</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="flex flex-col items-center space-y-3">
+                        <AlertCircle className="h-12 w-12 text-gray-400" />
+                        <div>
+                          <p className="text-base font-medium text-gray-900">Nenhum cliente encontrado</p>
+                          <p className="text-sm text-gray-600">
+                            {searchTerm ? 'Tente ajustar os filtros de busca' : 'Este lote não possui clientes'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop: Table Layout */}
+                <div className="hidden md:block rounded-lg border flex-1 flex flex-col">
                   <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                     <Table className="w-full">
-                                          <TableHeader>
+                      <TableHeader>
                         <TableRow className="bg-gray-50">
                           <TableHead className="font-semibold text-gray-900 min-w-[200px]">Cliente & Espécie</TableHead>
                           <TableHead className="font-semibold text-gray-900 min-w-[120px] whitespace-nowrap">CPF/CNPJ</TableHead>
@@ -501,7 +637,7 @@ const Compliance = () => {
                           <TableHead className="font-semibold text-gray-900 min-w-[120px]">Anexos</TableHead>
                         </TableRow>
                       </TableHeader>
-                                          <TableBody>
+                      <TableBody>
                       {loadingClientes ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-12">
@@ -614,7 +750,6 @@ const Compliance = () => {
                                 )}
                               </div>
                             </TableCell>
-
                           </TableRow>
                         ))
                       ) : (
@@ -639,14 +774,14 @@ const Compliance = () => {
 
                 {/* Paginação */}
                 {filteredClientes.length > 0 && (
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-6 py-4 border-t bg-gray-50 gap-4">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span className="text-center lg:text-left text-xs lg:text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6 py-4 border-t bg-gray-50 gap-4 mt-4">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600 order-2 sm:order-1">
+                      <span className="text-center sm:text-left text-xs sm:text-sm">
                         Mostrando {startIndex + 1} a {Math.min(endIndex, filteredClientes.length)} de {filteredClientes.length} clientes
                       </span>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-end space-x-2">
+                    <div className="flex items-center justify-center sm:justify-end space-x-1 sm:space-x-2 order-1 sm:order-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -654,7 +789,7 @@ const Compliance = () => {
                         disabled={currentPage === 1}
                         className="h-8 w-8 p-0"
                       >
-                        <ChevronsLeft className="h-4 w-4" />
+                        <ChevronsLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                       
                       <Button
@@ -664,20 +799,20 @@ const Compliance = () => {
                         disabled={currentPage === 1}
                         className="h-8 w-8 p-0"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                       
                       <div className="flex items-center space-x-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                           let pageNumber;
-                          if (totalPages <= 5) {
+                          if (totalPages <= 3) {
                             pageNumber = i + 1;
-                          } else if (currentPage <= 3) {
+                          } else if (currentPage <= 2) {
                             pageNumber = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNumber = totalPages - 4 + i;
+                          } else if (currentPage >= totalPages - 1) {
+                            pageNumber = totalPages - 2 + i;
                           } else {
-                            pageNumber = currentPage - 2 + i;
+                            pageNumber = currentPage - 1 + i;
                           }
                           
                           return (
@@ -686,7 +821,7 @@ const Compliance = () => {
                               variant={currentPage === pageNumber ? "default" : "outline"}
                               size="sm"
                               onClick={() => setCurrentPage(pageNumber)}
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 text-xs"
                             >
                               {pageNumber}
                             </Button>
@@ -701,7 +836,7 @@ const Compliance = () => {
                         disabled={currentPage === totalPages}
                         className="h-8 w-8 p-0"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                       
                       <Button
@@ -711,7 +846,7 @@ const Compliance = () => {
                         disabled={currentPage === totalPages}
                         className="h-8 w-8 p-0"
                       >
-                        <ChevronsRight className="h-4 w-4" />
+                        <ChevronsRight className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   </div>
