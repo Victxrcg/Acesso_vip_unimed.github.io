@@ -377,115 +377,222 @@ const Customers = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-sm font-semibold">Cliente</TableHead>
-                  <TableHead className="text-sm font-semibold">CPF/CNPJ</TableHead>
-                  <TableHead className="text-sm font-semibold">Credor</TableHead>
-                  <TableHead className="text-sm font-semibold">Valor</TableHead>
-                  <TableHead className="text-sm font-semibold">Data da Ação</TableHead>
-                  <TableHead className="text-sm font-semibold">Última Ação</TableHead>
-                  <TableHead className="whitespace-nowrap text-sm font-semibold">
-                    Áudios
-                    <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold">
-                    Anexos para download
-                    <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedCustomers.map((customer) => (
-                  <TableRow key={customer.id} className="table-row">
-                    <TableCell>
+          {/* Mobile: Cards Layout */}
+          <div className="block md:hidden space-y-4">
+            {paginatedCustomers.map((customer) => (
+              <Card key={customer.id} className="border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Header com nome e matrícula */}
+                    <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-full">
                           <User className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <div className="font-medium text-sm lg:text-base">{customer.nome}</div>
-                          <div className="text-xs lg:text-sm text-muted-foreground">
+                          <div className="font-medium text-sm">{customer.nome}</div>
+                          <div className="text-xs text-muted-foreground">
                             Mat: {customer.matricula}
                           </div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="font-medium text-sm lg:text-base">{customer.cpfCnpj}</TableCell>
-                    <TableCell className="text-sm lg:text-base">{customer.credor}</TableCell>
-                    <TableCell className="font-semibold text-sm lg:text-base">{formatCurrency(customer.valorRecebido)}</TableCell>
-                    <TableCell className="text-sm lg:text-base">{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
-                    <TableCell className="text-sm lg:text-base">{customer.acao}</TableCell>
-                    <TableCell>
+                    </div>
+                    
+                    {/* Informações principais */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">CPF/CNPJ:</span>
+                        <div className="font-medium">{customer.cpfCnpj}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Credor:</span>
+                        <div>{customer.credor}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Valor:</span>
+                        <div className="font-semibold">{formatCurrency(customer.valorRecebido)}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Ação:</span>
+                        <div>{customer.acao}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Data da ação */}
+                    <div className="text-xs">
+                      <span className="text-muted-foreground">Data da Ação:</span>
+                      <div>{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</div>
+                    </div>
+                    
+                    {/* Botões de ação */}
+                    <div className="flex gap-2 pt-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         onClick={() => handleAudiosClick(customer)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 flex-1"
                       >
                         <FileAudio className="h-3 w-3" />
                         <span className="text-xs">Áudios</span>
                       </Button>
-                    </TableCell>
-                    <TableCell>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleAttachmentsClick(customer)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 flex-1"
                       >
                         <Paperclip className="h-3 w-3" />
                         <span className="text-xs">Anexos</span>
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          {/* Desktop: Table Layout */}
+          <div className="hidden md:block">
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-sm font-semibold">Cliente</TableHead>
+                    <TableHead className="text-sm font-semibold">CPF/CNPJ</TableHead>
+                    <TableHead className="text-sm font-semibold">Credor</TableHead>
+                    <TableHead className="text-sm font-semibold">Valor</TableHead>
+                    <TableHead className="text-sm font-semibold">Data da Ação</TableHead>
+                    <TableHead className="text-sm font-semibold">Última Ação</TableHead>
+                    <TableHead className="whitespace-nowrap text-sm font-semibold">
+                      Áudios
+                      <div className="text-xs text-muted-foreground leading-tight">(Reproduzir e baixar)</div>
+                    </TableHead>
+                    <TableHead className="text-sm font-semibold">
+                      Anexos para download
+                      <div className="text-xs text-muted-foreground leading-tight">(Evidências de atendimento)</div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCustomers.map((customer) => (
+                    <TableRow key={customer.id} className="table-row">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm lg:text-base">{customer.nome}</div>
+                            <div className="text-xs lg:text-sm text-muted-foreground">
+                              Mat: {customer.matricula}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium text-sm lg:text-base">{customer.cpfCnpj}</TableCell>
+                      <TableCell className="text-sm lg:text-base">{customer.credor}</TableCell>
+                      <TableCell className="font-semibold text-sm lg:text-base">{formatCurrency(customer.valorRecebido)}</TableCell>
+                      <TableCell className="text-sm lg:text-base">{customer.envioNegociacao ? formatDate(customer.envioNegociacao) : 'N/A'}</TableCell>
+                      <TableCell className="text-sm lg:text-base">{customer.acao}</TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAudiosClick(customer)}
+                          className="flex items-center gap-2"
+                        >
+                          <FileAudio className="h-3 w-3" />
+                          <span className="text-xs">Áudios</span>
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAttachmentsClick(customer)}
+                          className="flex items-center gap-2"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          <span className="text-xs">Anexos</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
          {/* Controles de Paginação */}
          {totalPages > 1 && (
-           <div className="flex justify-center items-center gap-2 mt-4">
-             <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-               Anterior
-             </Button>
-             {Array.from({ length: totalPages }, (_, i) => (
-               <Button
-                 key={i + 1}
-                 size="sm"
-                 variant={currentPage === i + 1 ? "default" : "outline"}
-                 onClick={() => setCurrentPage(i + 1)}
-               >
-                 {i + 1}
-               </Button>
-             ))}
-             <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-               Próxima
-             </Button>
-           </div>
-         )}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} de {filteredCustomers.length} clientes
+              </div>
+              <div className="flex items-center gap-2 order-1 sm:order-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="text-xs"
+                >
+                  Anterior
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      const start = Math.max(1, currentPage - 2);
+                      const end = Math.min(totalPages, currentPage + 2);
+                      return page >= start && page <= end;
+                    })
+                    .map(page => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0 text-xs"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="text-xs"
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
 
 
-      {/* 🎵 MODAL DE ÁUDIOS */}
+      {/* Dialog para Áudios */}
       <Dialog open={isAudiosDialogOpen} onOpenChange={setIsAudiosDialogOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Gerenciar Áudios - {selectedCustomer?.nome}</DialogTitle>
-            <DialogDescription>
-              Visualize, reproduza e faça download dos áudios associados a este cliente.
+            <DialogTitle className="text-base sm:text-lg">Áudios - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription className="text-sm">
+              Reproduza e faça download dos áudios associados a este cliente.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
-            {/* 👤 Informações do Cliente */}
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-4 sm:space-y-6">
+            {/* Informações do Cliente */}
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                 <div>
                   <span className="font-medium">CPF/CNPJ:</span> {selectedCustomer?.cpfCnpj}
                 </div>
@@ -495,14 +602,15 @@ const Customers = () => {
               </div>
             </div>
 
-            {/* 🎵 Lista de Áudios */}
+            {/* Lista de Áudios */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Áudios ({audios.length})</h3>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h3 className="text-base sm:text-lg font-medium">Áudios ({audios.length})</h3>
                 {audios.length > 0 && (
                   <Button
-                    onClick={handleDownloadAllAudios} // 💾 Download de todos
-                    className="flex items-center gap-2"
+                    onClick={handleDownloadAllAudios}
+                    className="flex items-center gap-2 w-full sm:w-auto"
+                    size="sm"
                   >
                     <Download className="h-4 w-4" />
                     Baixar Todos
@@ -511,68 +619,65 @@ const Customers = () => {
               </div>
               
               {audios.length === 0 ? (
-                // 📭 Mensagem quando não há áudios
                 <div className="text-center py-8 text-muted-foreground">
                   <FileAudio className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Nenhum áudio encontrado</p>
                   <p className="text-sm">Não há áudios disponíveis para este cliente</p>
                 </div>
               ) : (
-                // 🎵 Lista dos áudios
                 <div className="space-y-2">
                   {audios.map((audio) => (
                     <div
                       key={audio.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-3"
                     >
-                      {/* 📝 Informações do áudio */}
-                      <div className="flex items-center gap-3">
-                        <FileAudio className="h-4 w-4" />
-                        <div>
-                          <div className="font-medium">{audio.originalName}</div>
-                          <div className="text-sm text-muted-foreground">
+                      {/* Informações do áudio */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileAudio className="h-4 w-4 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{audio.originalName}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {formatFileSize(audio.fileSize)} • {new Date(audio.uploadDate).toLocaleDateString('pt-BR')}
                           </div>
                           {audio.description && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
                               {audio.description}
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      {/* 🎮 Controles do áudio */}
-                      <div className="flex items-center gap-2">
-                        {/* ▶️ Botão Play/Pause */}
+                      {/* Controles do áudio */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handlePlayAudio(audio.fileName)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 flex-1 sm:flex-none"
                         >
                           {currentPlayingAudio === audio.fileName ? (
                             <>
                               <Pause className="h-4 w-4" />
-                              Pausar
+                              <span className="text-xs">Pausar</span>
                             </>
                           ) : (
                             <>
                               <Play className="h-4 w-4" />
-                              Tocar
+                              <span className="text-xs">Tocar</span>
                             </>
                           )}
                         </Button>
                         
-                        {/* 💾 Botão Download */}
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleAudioDownload(audio.fileName, audio.originalName)}
+                          className="flex-shrink-0"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         
-                        {/* 🎵 Elemento de áudio oculto para reprodução */}
+                        {/* Elemento de áudio oculto para reprodução */}
                         <audio
                           id={`audio-${audio.fileName}`}
                           src={`${API_BASE}/api/audios/stream/${audio.fileName}`}
@@ -601,18 +706,18 @@ const Customers = () => {
 
       {/* Dialog para Gerenciar Anexos */}
       <Dialog open={isAttachmentsDialogOpen} onOpenChange={setIsAttachmentsDialogOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Gerenciar Anexos - {selectedCustomer?.nome}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Gerenciar Anexos - {selectedCustomer?.nome}</DialogTitle>
+            <DialogDescription className="text-sm">
               Visualize e faça download dos anexos associados a este cliente.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Informações do Cliente */}
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                 <div>
                   <span className="font-medium">CPF/CNPJ:</span> {selectedCustomer?.cpfCnpj}
                 </div>
@@ -624,12 +729,13 @@ const Customers = () => {
 
             {/* Lista de Anexos */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Anexos ({attachments.length})</h3>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h3 className="text-base sm:text-lg font-medium">Anexos ({attachments.length})</h3>
                 {attachments.length > 0 && (
                   <Button
                     onClick={handleDownloadAllAttachments}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto"
+                    size="sm"
                   >
                     <Download className="h-4 w-4" />
                     Baixar Todos
@@ -648,30 +754,32 @@ const Customers = () => {
                   {attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-3"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getFileIcon(attachment.fileType)}
-                        <div>
-                          <div className="font-medium">{attachment.originalName}</div>
-                          <div className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{attachment.originalName}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {formatFileSize(attachment.fileSize)} • {new Date(attachment.uploadDate).toLocaleDateString('pt-BR')}
                           </div>
                           {attachment.description && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
                               {attachment.description}
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleAttachmentDownload(attachment.fileName, attachment.originalName)}
+                          className="flex items-center gap-2 flex-1 sm:flex-none"
                         >
                           <Download className="h-4 w-4" />
+                          <span className="text-xs sm:inline hidden">Download</span>
                         </Button>
                       </div>
                     </div>

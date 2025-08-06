@@ -113,7 +113,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-4 p-2 sm:p-4 max-w-full overflow-x-hidden">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
@@ -121,82 +121,79 @@ const Dashboard = () => {
         </div>
         {/* Removidos os botões Sistema Online e Relatório */}
       </div>
+      
       {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card className="metric-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Total de Clientes Auditados</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">Total de Clientes Auditados</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{metrics.totalClientes.toLocaleString()}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{metrics.totalClientes.toLocaleString()}</div>
           </CardContent>
         </Card>
 
         <Card className="metric-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium">Valor Auditado Recebido</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">Valor Auditado Recebido</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{formatCurrency(metrics.totalReceitas)}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{formatCurrency(metrics.totalReceitas)}</div>
           </CardContent>
         </Card>
 
         {/* Card fictício Lote_001 */}
-        <Card className="metric-card">
+        <Card className="metric-card sm:col-span-2 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base font-medium truncate">Lote_001_Unimed</CardTitle>
+            <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">Lote_001_Unimed</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
-              <div className="text-sm font-semibold text-gray-600">Assunto:</div>
-              <div className="text-sm leading-relaxed break-words">
+              <div className="text-xs sm:text-sm font-semibold text-gray-600">Assunto:</div>
+              <div className="text-xs sm:text-sm leading-relaxed break-words">
                 RELAÇÃO DE ÊXITO NA COBRANÇA DE FATURAS INADIMPLENTES UNIMED CAMPO GRANDE-MS - FORNECEDOR PARCEIRO: PORTES.
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-sm font-semibold text-gray-600">Email:</div>
-              <div className="text-sm font-medium break-all">
+              <div className="text-xs sm:text-sm font-semibold text-gray-600">Email:</div>
+              <div className="text-xs sm:text-sm font-medium break-all">
                 tiago.fruhauf@unimedcg.coop.br
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-sm font-semibold text-gray-600">Data:</div>
-              <div className="text-sm font-medium">15/07/2025</div>
+              <div className="text-xs sm:text-sm font-semibold text-gray-600">Data:</div>
+              <div className="text-xs sm:text-sm font-medium">15/07/2025</div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-3 mt-4 h-1/2">
+      <Tabs defaultValue="overview" className="space-y-3 mt-4">
         <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
         </TabsList>
 
-
-        
-
         <TabsContent value="overview" className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Resumo </CardTitle>
+                <CardTitle className="text-base sm:text-lg">Resumo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Removido Total de Comissões */}
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Média de Atraso</span>
                   <span className="text-lg font-bold">{metrics.mediaAtraso} dias</span>
-
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Status dos Clientes</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Status dos Clientes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -208,36 +205,15 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <span className="text-sm">Com Áudio</span>
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm">Atrasados</span>
                   </div>
-                  <span className="font-semibold">{metrics.clientesComAudio || 0}</span>
+                  <span className="font-semibold">{metrics.clientesAtrasados}</span>
                 </div>
-                {/* Novo status: Com Arquivos */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Com Arquivos</span>
-                  </div>
-                  <span className="font-semibold">182</span> {/* Troque para valor real se implementar contagem */}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          {/* Novo card de decisão de auditagem */}
-          <div className="max-w-full sm:max-w-2xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle>Decisão da Auditagem</CardTitle>
-                <p className="text-muted-foreground text-sm mt-1">Conforme sistema de gestão de qualidade ISO 9001:2015.</p>
-              </CardHeader>
-              <CardContent>
-                <AuditActionsCard />
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-        {/* Removidas as abas e conteúdos de Atividades e Analytics */}
       </Tabs>
     </div>
   );
