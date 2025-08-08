@@ -44,7 +44,7 @@ const Sidebar = ({ isOpen, onOpenChange }: SidebarProps) => {
       badge: null
     },
     { 
-      name: "Auditoria", 
+      name: "Auditoria clientes", 
       icon: Users, 
       path: "/auditoria",
       badge: null
