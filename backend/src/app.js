@@ -154,15 +154,38 @@ app.post('/login', async (req, res) => {
   let pool, server;
   try {
     ({ pool, server } = await getDbPoolWithTunnel());
-    // Detecta se a coluna role existe
-    const [roleCol] = await pool.query(
-      `SELECT COUNT(*) as has_role FROM INFORMATION_SCHEMA.COLUMNS 
-       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'role'`
-    );
-    const hasRole = roleCol?.[0]?.has_role > 0;
-    const selectSql = hasRole
-      ? 'SELECT id, username, email, password_hash, nome, status, COALESCE(role, "viewer") as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1'
-      : 'SELECT id, username, email, password_hash, nome, status, "viewer" as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1';
+    
+    // Detecta automaticamente quais colunas existem na tabela
+    const [columns] = await pool.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'usuarios'
+    `);
+    
+    const availableColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 Colunas disponíveis na tabela usuarios:', availableColumns);
+    
+    // Constrói a query dinamicamente baseada nas colunas existentes
+    let selectFields = ['id', 'username'];
+    
+    if (availableColumns.includes('email')) {
+      selectFields.push('email');
+    } else {
+      selectFields.push('username as email');
+    }
+    
+    selectFields.push('password_hash', 'nome', 'status');
+    
+    if (availableColumns.includes('role')) {
+      selectFields.push('COALESCE(role, "viewer") as role');
+    } else {
+      selectFields.push('"viewer" as role');
+    }
+    
+    const selectSql = `SELECT ${selectFields.join(', ')} FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1`;
+    console.log('🔍 Query SQL gerada:', selectSql);
+    
     const [rows] = await pool.query(selectSql, [usuario]);
     if (rows.length === 0) {
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
