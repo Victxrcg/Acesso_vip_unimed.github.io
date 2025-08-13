@@ -29,8 +29,17 @@ const Users = () => {
         return;
       }
       const data = await res.json();
+      console.log('📋 Dados recebidos do backend:', data);
+      console.log('📋 Tipo de data:', typeof data);
+      console.log('📋 É array?', Array.isArray(data));
+      console.log('📋 Quantidade de usuários:', data?.length || 0);
+
       // Garante que data seja sempre um array
-      setUsers(Array.isArray(data) ? data : []);
+      const usersArray = Array.isArray(data) ? data : [];
+      console.log('📋 Array final de usuários:', usersArray);
+      console.log('📋 Quantidade no array final:', usersArray.length);
+
+      setUsers(usersArray);
     } catch (error) {
       console.error('Erro na requisição:', error);
       setUsers([]);

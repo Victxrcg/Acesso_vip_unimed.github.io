@@ -1440,10 +1440,11 @@ app.get('/api/usuarios', async (req, res) => {
       SELECT id, username, username as email, nome, status, "viewer" as role, created_at
       FROM usuarios
       ORDER BY created_at DESC
-      LIMIT 200
+      LIMIT 1000
     `);
     
     console.log(`📋 Usuários encontrados: ${rows.length}`);
+    console.log('📋 Todos os usuários:', rows.map(u => ({ username: u.username, nome: u.nome })));
     if (rows.length > 0) {
       console.log('📄 Primeiro usuário:', rows[0]);
     }
