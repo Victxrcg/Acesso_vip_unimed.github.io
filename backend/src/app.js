@@ -64,15 +64,106 @@ app.use('/api/lotes', lotesRoutes);
 app.use('/api/clientes', clientesRoutes);
 // app.use('/api', pdfsRoutes); // pdfs e download
 
+// Armazenamento em memória para dev
+const devUsers = new Map(); // email -> { id, username, email, nome, status, role, passwordHash }
+
+// Cadastro padrão (nome, email, senha)
+app.post('/api/register', async (req, res) => {
+  const { nome, email, senha } = req.body || {};
+  if (!nome || !email || !senha) {
+    return res.status(400).json({ success: false, error: 'Campos obrigatórios: nome, email e senha.' });
+  }
+  try {
+    const { pool } = await getDbPoolWithTunnel();
+    const passwordHash = await bcrypt.hash(senha, 10);
+    await pool.query(
+      'INSERT INTO usuarios (nome, username, email, password_hash, status) VALUES (?, ?, ?, ?, "ativo")',
+      [nome, email, email, passwordHash]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.warn('⚠️ Registro no banco falhou. Usando fallback dev:', err.message);
+    if (process.env.NODE_ENV === 'development') {
+      const id = Date.now();
+      const passwordHash = await bcrypt.hash(senha, 10);
+      devUsers.set(email, { id, username: email, email, nome, status: 'ativo', passwordHash });
+      return res.json({ success: true, mode: 'fallback' });
+    }
+    res.status(500).json({ success: false, error: 'Erro ao registrar usuário', details: err.message });
+  }
+});
+
+// Cadastro de empresas (solicitar acesso)
+app.post('/api/empresas', async (req, res) => {
+  const { razaoSocial, cnpj, email, telefone, responsavel, senha } = req.body || {};
+  if (!razaoSocial || !cnpj || !email || !senha) {
+    return res.status(400).json({ error: 'Campos obrigatórios: razão social, CNPJ, email e senha.' });
+  }
+  try {
+    const { pool } = await getDbPoolWithTunnel();
+    const passwordHash = await bcrypt.hash(senha, 10);
+    await pool.query(`
+      INSERT INTO empresas (razao_social, cnpj, email, telefone, responsavel, password_hash, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'pendente')
+    `, [razaoSocial, cnpj, email, telefone || null, responsavel || null, passwordHash]);
+    res.json({ success: true });
+  } catch (err) {
+    console.warn('⚠️ Falha ao salvar empresa no banco, usando fallback dev:', err.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📝 Empresa cadastrada (memória):', { razaoSocial, cnpj, email, telefone, responsavel });
+      return res.json({ success: true, mode: 'fallback' });
+    }
+    res.status(500).json({ error: 'Erro ao cadastrar empresa', details: err.message });
+  }
+});
+
 app.post('/login', async (req, res) => {
   const { usuario, senha } = req.body;
+  
+  // Modo fallback para desenvolvimento
+  if (process.env.NODE_ENV === 'development' || !process.env.DB_HOST) {
+    console.log('🔧 Modo fallback ativo para login');
+
+    // Se o usuário foi registrado em memória, validar contra ele
+    if (devUsers.has(usuario)) {
+      const user = devUsers.get(usuario);
+      const ok = await bcrypt.compare(senha, user.passwordHash);
+      if (!ok) return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+      const safeUser = { id: user.id, username: user.username, email: user.email, nome: user.nome, status: user.status, role: user.role || 'viewer' };
+      return res.json({ success: true, user: safeUser });
+    }
+    
+    // Credenciais fixas para teste rápido
+    const mockUsers = [
+      { id: 1, username: 'admin', nome: 'Administrador', status: 'ativo' },
+      { id: 2, username: 'user', nome: 'Usuário Teste', status: 'ativo' }
+    ];
+    const mockUser = mockUsers.find(u => u.username === usuario);
+    if (!mockUser) {
+      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+    }
+    if (senha && senha.length > 0) {
+      console.log(`✅ Login bem-sucedido (modo fallback): ${usuario}`);
+      return res.json({ success: true, user: mockUser });
+    } else {
+      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+    }
+  }
+
+  // Modo normal com banco de dados
   let pool, server;
   try {
     ({ pool, server } = await getDbPoolWithTunnel());
-    const [rows] = await pool.query(
-      'SELECT id, username, password_hash, nome, status FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1',
-      [usuario]
+    // Detecta se a coluna role existe
+    const [roleCol] = await pool.query(
+      `SELECT COUNT(*) as has_role FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'role'`
     );
+    const hasRole = roleCol?.[0]?.has_role > 0;
+    const selectSql = hasRole
+      ? 'SELECT id, username, email, password_hash, nome, status, COALESCE(role, "viewer") as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1'
+      : 'SELECT id, username, email, password_hash, nome, status, "viewer" as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1';
+    const [rows] = await pool.query(selectSql, [usuario]);
     if (rows.length === 0) {
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
     }
@@ -81,13 +172,12 @@ app.post('/login', async (req, res) => {
     if (!senhaCorreta) {
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
     }
-    // Não envie o hash para o frontend!
     delete user.password_hash;
     res.json({ success: true, user });
   } catch (err) {
+    console.error('❌ Erro no login:', err);
     res.status(500).json({ success: false, error: 'Erro ao autenticar.', details: err.message });
   }
-  // Não fechar conexão - será reutilizada
 });
 
 // Rota para ocorrências (compatibilidade com frontend)
@@ -1312,6 +1402,60 @@ app.post('/api/audios/upload-all', async (req, res) => {
     });
   }
   // Não fechar conexão - será reutilizada
+});
+
+// Gestão de usuários (simples)
+app.get('/api/usuarios', async (req, res) => {
+  let pool;
+  try {
+    ({ pool } = await getDbPoolWithTunnel());
+    
+    const [rows] = await pool.query(`
+      SELECT id, username, email, nome, status, created_at
+      FROM usuarios
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
+    
+    // Adiciona role padrão 'viewer' para compatibilidade com o frontend
+    const usersWithRole = rows.map(user => ({
+      ...user,
+      role: 'viewer'
+    }));
+    
+    res.json(usersWithRole);
+  } catch (err) {
+    console.error('❌ Erro ao listar usuários:', err);
+    res.status(500).json({ error: 'Erro ao listar usuários', details: err.message });
+  }
+});
+
+app.put('/api/usuarios/:id', async (req, res) => {
+  let pool;
+  try {
+    const { id } = req.params;
+    const { role, status, nome, email } = req.body || {};
+    ({ pool } = await getDbPoolWithTunnel());
+
+    // Montar atualização parcial
+    const fields = [];
+    const values = [];
+    if (role) { fields.push('role = ?'); values.push(role); }
+    if (status) { fields.push('status = ?'); values.push(status); }
+    if (nome) { fields.push('nome = ?'); values.push(nome); }
+    if (email) { fields.push('email = ?'); values.push(email); }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+    }
+
+    values.push(id);
+    await pool.query(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = ?`, values);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Erro ao atualizar usuário:', err);
+    res.status(500).json({ error: 'Erro ao atualizar usuário', details: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;

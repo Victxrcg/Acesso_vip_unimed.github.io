@@ -61,7 +61,13 @@ const Dashboard = () => {
         // Fallback para clientes se ocorrências não existir
         fetch(`${API_BASE}/api/clientes`)
           .then(res => res.json())
-          .then(clientes => {
+          .then(raw => {
+            const clientes = Array.isArray(raw)
+              ? raw
+              : Array.isArray(raw?.data)
+                ? raw.data
+                : [];
+
             const totalClientes = clientes.length;
             const totalReceitas = clientes.reduce((acc, c) => acc + (Number(c.valor_atual || c.valor_recebido) || 0), 0);
             const clientesAtrasados = clientes.filter(c => Number(c.dias_atraso || c.atraso) > 0).length;
@@ -78,6 +84,10 @@ const Dashboard = () => {
               taxaRecuperacao: 0,
               clientesComAudio: 0,
             });
+          })
+          .catch(err2 => {
+            console.error('Erro no fallback de clientes:', err2);
+            setMetrics(prev => ({ ...prev, totalClientes: 0 }));
           });
       });
   }, []);

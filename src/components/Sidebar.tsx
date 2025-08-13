@@ -36,6 +36,32 @@ const Sidebar = ({ isOpen, onOpenChange }: SidebarProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  const getCurrentUserName = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) return 'Usuário';
+      const u = JSON.parse(raw);
+      return u?.nome || u?.username || 'Usuário';
+    } catch {
+      return 'Usuário';
+    }
+  };
+
+  const getCurrentUserInitials = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) return 'U';
+      const u = JSON.parse(raw);
+      const name = u?.nome || u?.username || '';
+      if (name.length >= 2) {
+        return name.substring(0, 2).toUpperCase();
+      }
+      return name.charAt(0).toUpperCase();
+    } catch {
+      return 'U';
+    }
+  };
+
   const menuItems = [
     { 
       name: "Dashboard", 
@@ -46,13 +72,19 @@ const Sidebar = ({ isOpen, onOpenChange }: SidebarProps) => {
     { 
       name: "Auditoria clientes", 
       icon: Users, 
-      path: "/auditoria",
+      path: "/customers",
       badge: null
     },
     { 
       name: "Compliance", 
       icon: ClipboardList, 
       path: "/compliance",
+      badge: null
+    },
+    {
+      name: "Usuários",
+      icon: Settings,
+      path: "/usuarios",
       badge: null
     }
   ];
@@ -102,8 +134,8 @@ const Sidebar = ({ isOpen, onOpenChange }: SidebarProps) => {
                 <Shield className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">Compliance Unimed</h1>
-                <p className="text-sm text-sidebar-foreground"> Normativa ANS nº 593 </p>      
+                <h1 className="text-lg font-bold text-sidebar-foreground">Compliance App</h1>
+                <p className="text-sm text-sidebar-foreground"> Unimed </p>      
               </div>
             </div>
           )}
@@ -155,21 +187,41 @@ const Sidebar = ({ isOpen, onOpenChange }: SidebarProps) => {
           </NavLink>
         ))}
         
-        {/* Botão de Sair logo abaixo do menu principal */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className={`w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center
-            ${(collapsed && !isMobile) ? 'justify-center px-0' : 'justify-start px-3'}`}
-        >
-          <LogOut className={`h-4 w-4${(collapsed && !isMobile) ? '' : ' mr-3'}`} />
-          {(!collapsed || isMobile) && "Sair"}
-        </Button>
       </nav>
 
       {/* Bottom Section */}
       <div className="p-4 border-t border-sidebar-border space-y-2">
+        {/* User Info */}
+        <div className="flex items-center gap-3 px-3 py-2">
+          {!collapsed && (
+            <>
+            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-primary-foreground text-sm font-bold">
+                {getCurrentUserInitials()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-sidebar-foreground truncate">
+                {getCurrentUserName()}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                Usuário
+              </div>
+            </div>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className={`h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ${
+              collapsed ? 'mx-auto' : ''
+            }`}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+        
         {bottomMenuItems.map((item) => (
           <NavLink
             key={item.path}

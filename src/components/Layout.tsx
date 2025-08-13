@@ -71,18 +71,6 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {/* User Menu */}
-            <div className="flex items-center gap-2 md:gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  AD
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden sm:block">
-                <div className="text-sm font-medium">Admin</div>
-                <div className="text-xs text-muted-foreground">Administrador</div>
-              </div>
-            </div>
           </div>
         </header>
 
