@@ -21,9 +21,20 @@ const Users = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const res = await fetch(`${API_BASE}/api/usuarios`);
-    const data = await res.json();
-    setUsers(data);
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios`);
+      if (!res.ok) {
+        console.error('Erro ao buscar usuários:', res.status, res.statusText);
+        setUsers([]);
+        return;
+      }
+      const data = await res.json();
+      // Garante que data seja sempre um array
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      setUsers([]);
+    }
     setLoading(false);
   };
 

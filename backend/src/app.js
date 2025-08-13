@@ -1431,24 +1431,32 @@ app.post('/api/audios/upload-all', async (req, res) => {
 app.get('/api/usuarios', async (req, res) => {
   let pool;
   try {
+    console.log('🔍 Endpoint /api/usuarios chamado');
     ({ pool } = await getDbPoolWithTunnel());
+    console.log('✅ Conexão com banco estabelecida');
     
+    // Query simples que funciona sem a coluna email
     const [rows] = await pool.query(`
-      SELECT id, username, email, nome, status, created_at
+      SELECT id, username, username as email, nome, status, "viewer" as role, created_at
       FROM usuarios
       ORDER BY created_at DESC
       LIMIT 200
     `);
     
-    // Adiciona role padrão 'viewer' para compatibilidade com o frontend
-    const usersWithRole = rows.map(user => ({
-      ...user,
-      role: 'viewer'
-    }));
+    console.log(`📋 Usuários encontrados: ${rows.length}`);
+    if (rows.length > 0) {
+      console.log('📄 Primeiro usuário:', rows[0]);
+    }
     
-    res.json(usersWithRole);
+    res.json(rows);
   } catch (err) {
     console.error('❌ Erro ao listar usuários:', err);
+    console.error('🔍 Detalhes do erro:', {
+      message: err.message,
+      code: err.code,
+      sqlState: err.sqlState,
+      sqlMessage: err.sqlMessage
+    });
     res.status(500).json({ error: 'Erro ao listar usuários', details: err.message });
   }
 });
