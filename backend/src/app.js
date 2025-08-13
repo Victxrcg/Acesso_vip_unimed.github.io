@@ -77,8 +77,8 @@ app.post('/api/register', async (req, res) => {
     const { pool } = await getDbPoolWithTunnel();
     const passwordHash = await bcrypt.hash(senha, 10);
     await pool.query(
-      'INSERT INTO usuarios (nome, username, email, password_hash, status) VALUES (?, ?, ?, ?, "ativo")',
-      [nome, email, email, passwordHash]
+      'INSERT INTO usuarios (nome, username, password_hash, status) VALUES (?, ?, ?, "ativo")',
+      [nome, email, passwordHash]
     );
     res.json({ success: true });
   } catch (err) {
@@ -155,35 +155,8 @@ app.post('/login', async (req, res) => {
   try {
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Detecta automaticamente quais colunas existem na tabela
-    const [columns] = await pool.query(`
-      SELECT COLUMN_NAME 
-      FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'usuarios'
-    `);
-    
-    const availableColumns = columns.map(col => col.COLUMN_NAME);
-    console.log('📋 Colunas disponíveis na tabela usuarios:', availableColumns);
-    
-    // Constrói a query dinamicamente baseada nas colunas existentes
-    let selectFields = ['id', 'username'];
-    
-    if (availableColumns.includes('email')) {
-      selectFields.push('email');
-    } else {
-      selectFields.push('username as email');
-    }
-    
-    selectFields.push('password_hash', 'nome', 'status');
-    
-    if (availableColumns.includes('role')) {
-      selectFields.push('COALESCE(role, "viewer") as role');
-    } else {
-      selectFields.push('"viewer" as role');
-    }
-    
-    const selectSql = `SELECT ${selectFields.join(', ')} FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1`;
+    // Query simples que funciona sem as colunas email e role
+    const selectSql = `SELECT id, username, username as email, password_hash, nome, status, "viewer" as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1`;
     console.log('🔍 Query SQL gerada:', selectSql);
     
     const [rows] = await pool.query(selectSql, [usuario]);
