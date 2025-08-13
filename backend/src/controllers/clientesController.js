@@ -39,7 +39,28 @@ exports.listarClientesDoLote = async (req, res) => {
     
     res.json(rows);
   } catch (err) {
-    console.error('❌ Erro ao buscar clientes do lote:', err);
+    console.error('❌ Erro ao buscar clientes do lote:', err.message);
+
+    if (process.env.NODE_ENV === 'development') {
+      // Fallback simples para não quebrar a UI
+      const mock = [
+        {
+          id: 1,
+          numero_contrato: 'C-001',
+          especie: 'ACD',
+          nome_cliente: 'REBECA BRITO SILVA',
+          codigo_titulo: '05157928106-001',
+          cpf_cnpj: '051.579.281-06',
+          valor_atual: 64.80,
+          dias_atraso: 30,
+          data_vencimento: '2025-06-16',
+          created_at: new Date().toISOString(),
+          lote_id: Number(req.params.loteId || 1)
+        }
+      ];
+      return res.json(mock);
+    }
+
     res.status(500).json({ error: 'Erro ao buscar clientes do lote', details: err.message });
   }
   // Não fechar conexão - será reutilizada

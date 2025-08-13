@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +31,9 @@ const Compliance = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(35);
-  const [anexos, setAnexos] = useState({}); // Estado para armazenar anexos por cliente
-  const [loadingAnexos, setLoadingAnexos] = useState({}); // Estado para loading de anexos
+  const [anexos, setAnexos] = useState({});
+  const [loadingAnexos, setLoadingAnexos] = useState({});
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -165,81 +166,61 @@ const Compliance = () => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, selectedLote]);
 
+  // Detectar mudanças no tamanho da janela
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Estatísticas do lote selecionado
   const selectedLoteData = Array.isArray(lotes) ? lotes.find(l => l.id === selectedLote) : null;
   const totalContratos = clientes.reduce((acc, c) => acc + c.contratos.length, 0);
   const totalEspecies = clientes.reduce((acc, c) => acc + c.especies.length, 0);
   const totalCodigos = clientes.reduce((acc, c) => acc + c.codigos.length, 0);
   
-  // Função para normalizar CPF/CNPJ (adicionar zeros à esquerda)
+  // Função para normalizar CPF/CNPJ
   const normalizeCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return "";
-    
-    // Remove todos os caracteres não numéricos
     let clean = cpfCnpj.replace(/\D/g, "");
-    
-    // Adiciona zeros à esquerda se necessário
     if (clean.length === 9) {
-      clean = "00" + clean; // Adiciona 2 zeros para CPF
+      clean = "00" + clean;
     } else if (clean.length === 10) {
-      clean = "0" + clean; // Adiciona 1 zero para CPF
+      clean = "0" + clean;
     } else if (clean.length === 12) {
-      clean = "00" + clean; // Adiciona 2 zeros para CNPJ
+      clean = "00" + clean;
     } else if (clean.length === 13) {
-      clean = "0" + clean; // Adiciona 1 zero para CNPJ
+      clean = "0" + clean;
     }
-    
     return clean;
   };
 
   // Função para formatar CPF/CNPJ
   const formatCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return "";
-    
-    // Primeiro normaliza o CPF/CNPJ
     const normalized = normalizeCpfCnpj(cpfCnpj);
-    
-    // Formata CPF (11 dígitos)
     if (normalized.length === 11) {
       return normalized.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
     }
-    
-    // Formata CNPJ (14 dígitos)
     if (normalized.length === 14) {
       return normalized.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
     }
-    
-    // Se não for CPF nem CNPJ válido, retorna o valor original
     return cpfCnpj;
-  };
-
-  // Função para verificar se é CPF ou CNPJ válido
-  const isValidCpfCnpj = (cpfCnpj) => {
-    if (!cpfCnpj) return false;
-    const normalized = normalizeCpfCnpj(cpfCnpj);
-    return normalized.length === 11 || normalized.length === 14;
   };
 
   // Função para buscar anexos de um cliente
   const buscarAnexos = async (cliente) => {
     const cpfCnpj = normalizeCpfCnpj(cliente.cpf_cnpj);
-    
     if (!cpfCnpj) return;
     
-    // Marcar como carregando
     setLoadingAnexos(prev => ({ ...prev, [cpfCnpj]: true }));
     
     try {
       console.log('🔍 Buscando anexos para CPF:', cpfCnpj);
-      
-      // Buscar anexos usando o CPF
       const anexosRes = await fetch(`${API_BASE}/api/anexos/${cpfCnpj}`);
       const anexosData = await anexosRes.json();
-      
       console.log('✅ Anexos encontrados:', anexosData);
-      
       setAnexos(prev => ({ ...prev, [cpfCnpj]: anexosData }));
-      
     } catch (error) {
       console.error('❌ Erro ao buscar anexos:', error);
       setAnexos(prev => ({ ...prev, [cpfCnpj]: [] }));
@@ -257,7 +238,6 @@ const Compliance = () => {
   // Função para baixar anexo
   const downloadAnexo = (fileName) => {
     console.log('📥 Baixando anexo:', fileName);
-    
     const link = document.createElement('a');
     link.href = `${API_BASE}/api/media/download/${fileName}`;
     link.download = fileName;
@@ -267,7 +247,6 @@ const Compliance = () => {
   // Função para obter ícone baseado no tipo de arquivo
   const getFileIcon = (fileName) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
-    
     switch (extension) {
       case 'pdf':
         return <FileText className="h-4 w-4 text-red-500" />;
@@ -288,13 +267,6 @@ const Compliance = () => {
     }
   };
 
-  // Estatísticas de CPF/CNPJ
-  const cpfsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 11).length;
-  const cnpjsCount = clientes.filter(c => normalizeCpfCnpj(c.cpf_cnpj).length === 14).length;
-  
-  // Estatísticas de anexos
-  const anexosCount = clientes.filter(c => hasAnexos(c)).length;
-
   return (
     <div className="space-y-4 lg:space-y-6 p-4 lg:p-6">
       {/* Header Principal */}
@@ -304,7 +276,7 @@ const Compliance = () => {
             <CheckCircle className="h-5 w-5 text-green-600" />
             <h1 className="text-2xl lg:text-3xl font-bold">Compliance</h1>
           </div>
-          <p className="text-sm lg:text-base text-muted-foreground">Gerencie os lotes de cancelamento</p>
+          <p className="text-sm lg:text-base text-muted-foreground">Normativa ANS nº 593</p>
         </div>
       </div>
 
@@ -780,6 +752,17 @@ const Compliance = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="text-xs hidden sm:inline-flex"
+                      title="Primeira página"
+                    >
+                      <ChevronsLeft className="h-3 w-3" />
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                       className="text-xs"
@@ -788,23 +771,97 @@ const Compliance = () => {
                     </Button>
                     
                     <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => {
-                          const start = Math.max(1, currentPage - 2);
-                          const end = Math.min(totalPages, currentPage + 2);
-                          return page >= start && page <= end;
-                        })
-                        .map(page => (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(page)}
-                            className="w-8 h-8 p-0 text-xs"
-                          >
-                            {page}
-                          </Button>
-                        ))}
+                      {(() => {
+                        const pages = [];
+                        const maxVisiblePages = windowWidth < 768 ? 3 : 5;
+                        
+                        if (totalPages <= maxVisiblePages) {
+                          for (let i = 1; i <= totalPages; i++) {
+                            pages.push(
+                              <Button
+                                key={i}
+                                variant={currentPage === i ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(i)}
+                                className="w-8 h-8 p-0 text-xs"
+                              >
+                                {i}
+                              </Button>
+                            );
+                          }
+                        } else {
+                          pages.push(
+                            <Button
+                              key={1}
+                              variant={currentPage === 1 ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(1)}
+                              className="w-8 h-8 p-0 text-xs"
+                            >
+                              1
+                            </Button>
+                          );
+                          
+                          let startPage = Math.max(2, currentPage - 1);
+                          let endPage = Math.min(totalPages - 1, currentPage + 1);
+                          
+                          if (currentPage <= 3) {
+                            startPage = 2;
+                            endPage = Math.min(totalPages - 1, maxVisiblePages - 1);
+                          }
+                          
+                          if (currentPage >= totalPages - 2) {
+                            startPage = Math.max(2, totalPages - (maxVisiblePages - 1));
+                            endPage = totalPages - 1;
+                          }
+                          
+                          if (startPage > 2) {
+                            pages.push(
+                              <span key="ellipsis1" className="px-2 text-xs text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                          
+                          for (let i = startPage; i <= endPage; i++) {
+                            pages.push(
+                              <Button
+                                key={i}
+                                variant={currentPage === i ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(i)}
+                                className="w-8 h-8 p-0 text-xs"
+                              >
+                                {i}
+                              </Button>
+                            );
+                          }
+                          
+                          if (endPage < totalPages - 1) {
+                            pages.push(
+                              <span key="ellipsis2" className="px-2 text-xs text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                          
+                          if (totalPages > 1) {
+                            pages.push(
+                              <Button
+                                key={totalPages}
+                                variant={currentPage === totalPages ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(totalPages)}
+                                className="w-8 h-8 p-0 text-xs"
+                              >
+                                {totalPages}
+                              </Button>
+                            );
+                          }
+                        }
+                        
+                        return pages;
+                      })()}
                     </div>
                     
                     <Button
@@ -815,6 +872,17 @@ const Compliance = () => {
                       className="text-xs"
                     >
                       Próxima
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="text-xs hidden sm:inline-flex"
+                      title="Última página"
+                    >
+                      <ChevronsRight className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>

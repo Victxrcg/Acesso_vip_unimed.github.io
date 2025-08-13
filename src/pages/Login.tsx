@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,10 +37,11 @@ const Login = () => {
       const data = await res.json();
       if (res.ok && data.success) {
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard');
         toast({
           title: 'Login realizado com sucesso!',
-          description: 'Bem-vindo ao sistema de gestão de clientes Unimed.'
+          description: 'Bem-vindo ao sistema Compliance App.'
         });
       } else {
         toast({
@@ -81,11 +82,11 @@ const Login = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Usuário</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="text"
-                    placeholder="Digite seu usuário"
+                    placeholder="Digite seu email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -129,6 +130,11 @@ const Login = () => {
                     "Entrar no Sistema"
                   )}
                 </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Não tem conta? {" "}
+                  <Link to="/registrar" className="text-primary hover:underline">Cadastre-se</Link>
+                </div>
               </form>
             </CardContent>
           </Card>
