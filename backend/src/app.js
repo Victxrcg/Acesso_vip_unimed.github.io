@@ -1435,12 +1435,11 @@ app.get('/api/usuarios', async (req, res) => {
     ({ pool } = await getDbPoolWithTunnel());
     console.log('✅ Conexão com banco estabelecida');
     
-    // Query simples que funciona sem a coluna email
+    // Query mais simples para garantir que retorne todos os usuários
     const [rows] = await pool.query(`
       SELECT id, username, username as email, nome, status, "viewer" as role, created_at
       FROM usuarios
-      ORDER BY created_at DESC
-      LIMIT 1000
+      ORDER BY id ASC
     `);
     
     console.log(`📋 Usuários encontrados: ${rows.length}`);
