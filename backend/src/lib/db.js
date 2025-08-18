@@ -10,7 +10,7 @@ const dbConfig = {
   database: process.env.DB_NAME || 'auditaai',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
+  queueLimit: 0
 };
 
 // Pool de conexões
