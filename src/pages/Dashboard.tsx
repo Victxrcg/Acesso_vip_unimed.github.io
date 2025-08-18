@@ -15,13 +15,22 @@ import {
   FileText,
   Calendar,
   Activity,
-  BarChart3
+  BarChart3,
+  Database
 } from "lucide-react";
 import { DashboardMetrics } from "@/types";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+
+interface Lote {
+  id: number;
+  nome_arquivo: string;
+  data_lote: string;
+  importado_em: string;
+  total_registros: number;
+}
 
 const Dashboard = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -33,6 +42,8 @@ const Dashboard = () => {
     taxaRecuperacao: 0,
     clientesComAudio: 0
   });
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loadingLotes, setLoadingLotes] = useState(false);
 
   useEffect(() => {
     const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -85,10 +96,24 @@ const Dashboard = () => {
               clientesComAudio: 0,
             });
           })
-          .catch(err2 => {
-            console.error('Erro no fallback de clientes:', err2);
-            setMetrics(prev => ({ ...prev, totalClientes: 0 }));
+          .catch(err => {
+            console.error('Erro ao buscar clientes:', err);
           });
+      });
+
+    // Buscar lotes de cancelamento
+    setLoadingLotes(true);
+    fetch(`${API_BASE}/api/lotes`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('LOTES:', data);
+        setLotes(data);
+      })
+      .catch(err => {
+        console.error('Erro ao buscar lotes:', err);
+      })
+      .finally(() => {
+        setLoadingLotes(false);
       });
   }, []);
 
@@ -154,29 +179,36 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Card fictício Lote_001 */}
+        {/* Card de Lotes de Cancelamento */}
         <Card className="metric-card sm:col-span-2 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">Lote_001_Unimed</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">Lotes de Cancelamento</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <div className="text-xs sm:text-sm font-semibold text-gray-600">Assunto:</div>
-              <div className="text-xs sm:text-sm leading-relaxed break-words">
-                RELAÇÃO DE ÊXITO NA COBRANÇA DE FATURAS INADIMPLENTES UNIMED CAMPO GRANDE-MS - FORNECEDOR PARCEIRO: PORTES.
+            {loadingLotes ? (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
+                <p className="text-xs text-muted-foreground mt-1">Carregando...</p>
               </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs sm:text-sm font-semibold text-gray-600">Email:</div>
-              <div className="text-xs sm:text-sm font-medium break-all">
-                tiago.fruhauf@unimedcg.coop.br
+            ) : lotes.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs sm:text-sm font-semibold text-gray-600">Total de Lotes:</div>
+                <div className="text-lg font-bold text-primary">{lotes.length}</div>
+                <div className="text-xs sm:text-sm font-semibold text-gray-600">Último Lote:</div>
+                <div className="text-xs sm:text-sm font-medium break-all">
+                  {lotes[0]?.nome_arquivo || 'N/A'}
+                </div>
+                <div className="text-xs sm:text-sm font-semibold text-gray-600">Total de Registros:</div>
+                <div className="text-xs sm:text-sm font-medium">
+                  {lotes.reduce((acc, lote) => acc + (lote.total_registros || 0), 0).toLocaleString()}
+                </div>
               </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs sm:text-sm font-semibold text-gray-600">Data:</div>
-              <div className="text-xs sm:text-sm font-medium">15/07/2025</div>
-            </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-muted-foreground">Nenhum lote encontrado</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -198,28 +230,75 @@ const Dashboard = () => {
                   <span className="text-sm font-medium">Média de Atraso</span>
                   <span className="text-lg font-bold">{metrics.mediaAtraso} dias</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Clientes Atrasados</span>
+                  <span className="text-lg font-bold">{metrics.clientesAtrasados}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Clientes com Áudio</span>
+                  <span className="text-lg font-bold">{metrics.clientesComAudio}</span>
+                </div>
               </CardContent>
             </Card>
 
+            {/* Nova seção de Lotes */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Status dos Clientes</CardTitle>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Lotes de Cancelamento
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-success" />
-                    <span className="text-sm">Em Dia</span>
+                {loadingLotes ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-muted-foreground mt-2">Carregando lotes...</p>
                   </div>
-                  <span className="font-semibold">{metrics.totalClientes - metrics.clientesAtrasados}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <span className="text-sm">Atrasados</span>
+                ) : lotes.length > 0 ? (
+                  <div className="space-y-3">
+                    {lotes.slice(0, 5).map((lote) => (
+                      <div key={lote.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="secondary" className="text-xs">
+                              Lote {lote.id}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium truncate" title={lote.nome_arquivo}>
+                            {lote.nome_arquivo}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {lote.total_registros?.toLocaleString() || 0} registros
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">
+                            Importado em
+                          </div>
+                          <div className="text-xs font-medium">
+                            {new Date(lote.importado_em).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {lotes.length > 5 && (
+                      <div className="text-center pt-2">
+                        <p className="text-xs text-muted-foreground">
+                          +{lotes.length - 5} lotes adicionais
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <span className="font-semibold">{metrics.clientesAtrasados}</span>
-                </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Database className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Nenhum lote encontrado</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
