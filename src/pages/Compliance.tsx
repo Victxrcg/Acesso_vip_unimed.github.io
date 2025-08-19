@@ -182,16 +182,21 @@ const Compliance = () => {
   // Função para normalizar CPF/CNPJ
   const normalizeCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return "";
-    let clean = cpfCnpj.replace(/\D/g, "");
-    if (clean.length === 9) {
-      clean = "00" + clean;
-    } else if (clean.length === 10) {
-      clean = "0" + clean;
-    } else if (clean.length === 12) {
-      clean = "00" + clean;
-    } else if (clean.length === 13) {
-      clean = "0" + clean;
+    
+    // Remove apenas caracteres não numéricos, preservando zeros
+    let clean = cpfCnpj.toString().replace(/\D/g, "");
+    
+    // Para CPF (11 dígitos)
+    if (clean.length <= 11) {
+      // Pad com zeros à esquerda para garantir 11 dígitos
+      clean = clean.padStart(11, '0');
     }
+    // Para CNPJ (14 dígitos)
+    else if (clean.length <= 14) {
+      // Pad com zeros à esquerda para garantir 14 dígitos
+      clean = clean.padStart(14, '0');
+    }
+    
     return clean;
   };
 
