@@ -222,7 +222,7 @@ const Compliance = () => {
     
     try {
       console.log('🔍 Buscando anexos para CPF:', cpfCnpj);
-      const anexosRes = await fetch(`${API_BASE}/api/anexos/${cpfCnpj}`);
+      const anexosRes = await fetch(`${API_BASE}/api/clientes/anexos/${cpfCnpj}`);
       const anexosData = await anexosRes.json();
       console.log('✅ Anexos encontrados:', anexosData);
       setAnexos(prev => ({ ...prev, [cpfCnpj]: anexosData }));
