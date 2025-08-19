@@ -251,6 +251,8 @@ const Compliance = () => {
 
   // Função para obter ícone baseado no tipo de arquivo
   const getFileIcon = (fileName) => {
+    if (!fileName) return <FileText className="h-4 w-4 text-gray-500" />;
+    
     const extension = fileName.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf':
@@ -561,13 +563,13 @@ const Compliance = () => {
                                       key={idx}
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => downloadAnexo(anexo.fileName)}
+                                      onClick={() => downloadAnexo(anexo.file_name)}
                                       className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                      title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                      title={`Baixar ${anexo.file_name} (Tipo: ${anexo.tipo})`}
                                     >
-                                      {getFileIcon(anexo.fileName)}
+                                      {getFileIcon(anexo.file_name)}
                                       <span className="ml-1 truncate max-w-16">
-                                        {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                        {anexo.file_name.split('.').pop()?.toUpperCase()}
                                       </span>
                                     </Button>
                                   ))}
@@ -708,13 +710,13 @@ const Compliance = () => {
                                           key={idx}
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => downloadAnexo(anexo.fileName)}
+                                          onClick={() => downloadAnexo(anexo.file_name)}
                                           className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                          title={`Baixar ${anexo.fileName} (Tipo: ${anexo.tipo})`}
+                                          title={`Baixar ${anexo.file_name} (Tipo: ${anexo.tipo})`}
                                         >
-                                          {getFileIcon(anexo.fileName)}
+                                          {getFileIcon(anexo.file_name)}
                                           <span className="ml-1 truncate max-w-16">
-                                            {anexo.fileName.split('.').pop()?.toUpperCase()}
+                                            {anexo.file_name.split('.').pop()?.toUpperCase()}
                                           </span>
                                         </Button>
                                       ))}
