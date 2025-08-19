@@ -74,11 +74,22 @@ const buscarAnexosPorCpf = async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Buscar anexos por CPF
-    const [anexos] = await pool.query(
+    // 1. Buscar anexos diretamente pelo CPF
+    let [anexos] = await pool.query(
       'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
       [cpf]
     );
+    
+    // 2. Se não encontrar, buscar por cancelamento_id usando a relação
+    if (anexos.length === 0) {
+      console.log('🔍 CPF não encontrado, buscando por relação...');
+      [anexos] = await pool.query(`
+        SELECT cp.*, cc.cpf_cnpj, cc.nome_cliente, cc.numero_contrato
+        FROM cancelamento_pdfs cp
+        INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+        WHERE cc.cpf_cnpj = ?
+      `, [cpf]);
+    }
     
     console.log(`📎 Total de anexos encontrados para CPF ${cpf}:`, anexos.length);
     res.json(anexos);
