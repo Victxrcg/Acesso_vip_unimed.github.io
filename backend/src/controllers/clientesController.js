@@ -74,21 +74,25 @@ const buscarAnexosPorCpf = async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
+    // Normalizar CPF (remover zeros à esquerda)
+    const cpfNormalizado = cpf.replace(/^0+/, '');
+    console.log('🔧 CPF normalizado:', cpfNormalizado);
+    
     // 1. Buscar anexos diretamente pelo CPF
     let [anexos] = await pool.query(
       'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
       [cpf]
     );
     
-    // 2. Se não encontrar, buscar por cancelamento_id usando a relação
+    // 2. Se não encontrar, buscar por cpf_cnpj normalizado
     if (anexos.length === 0) {
-      console.log('🔍 CPF não encontrado, buscando por relação...');
+      console.log('🔍 CPF não encontrado, buscando por cpf_cnpj normalizado...');
       [anexos] = await pool.query(`
         SELECT cp.*, cc.cpf_cnpj, cc.nome_cliente, cc.numero_contrato
         FROM cancelamento_pdfs cp
         INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
         WHERE cc.cpf_cnpj = ?
-      `, [cpf]);
+      `, [cpfNormalizado]);
     }
     
     console.log(`📎 Total de anexos encontrados para CPF ${cpf}:`, anexos.length);
