@@ -52,6 +52,19 @@ const Compliance = () => {
         console.log('É array?', Array.isArray(data));
         console.log('Quantidade de lotes:', Array.isArray(data) ? data.length : 'N/A');
         
+        // DEBUG: Verificar dados brutos de cada lote
+        if (Array.isArray(data)) {
+          data.forEach((lote, index) => {
+            console.log(`Lote ${index + 1} (ID: ${lote.id}):`, {
+              nome_arquivo: lote.nome_arquivo,
+              data_lote_raw: lote.data_lote,
+              data_lote_type: typeof lote.data_lote,
+              data_lote_date: new Date(lote.data_lote),
+              data_lote_formatted: new Date(lote.data_lote).toLocaleDateString('pt-BR')
+            });
+          });
+        }
+        
         if (Array.isArray(data)) {
           setLotes(data);
           if (data.length > 0) {
@@ -179,6 +192,28 @@ const Compliance = () => {
   const totalEspecies = clientes.reduce((acc, c) => acc + c.especies.length, 0);
   const totalCodigos = clientes.reduce((acc, c) => acc + c.codigos.length, 0);
   
+  // Função para corrigir problema de fuso horário na data
+  const corrigirDataLote = (dataString) => {
+    if (!dataString) return '';
+    
+    // Se a data está no formato YYYY-MM-DD, tratar como data local (não UTC)
+    if (typeof dataString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dataString)) {
+      const [ano, mes, dia] = dataString.split('-');
+      // Criar data como local, não UTC
+      const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+      return data.toLocaleDateString('pt-BR');
+    }
+    
+    // Caso contrário, usar a formatação padrão
+    try {
+      const data = new Date(dataString);
+      return data.toLocaleDateString('pt-BR');
+    } catch (error) {
+      console.error('Erro ao formatar data:', error, dataString);
+      return dataString;
+    }
+  };
+
   // Função para normalizar CPF/CNPJ
   const normalizeCpfCnpj = (cpfCnpj) => {
     if (!cpfCnpj) return "";
@@ -314,7 +349,7 @@ const Compliance = () => {
                     <div className="flex items-center space-x-1 sm:space-x-2">
                       <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
                       <span className="font-semibold text-gray-900 text-xs sm:text-sm">
-                        {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
+                        {corrigirDataLote(lote.data_lote)}
                       </span>
                     </div>
                     {selectedLote === lote.id && (
@@ -351,7 +386,7 @@ const Compliance = () => {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
                 <div>
                   <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
-                    Lote {new Date(selectedLoteData.data_lote).toLocaleDateString('pt-BR')}
+                    Lote {corrigirDataLote(selectedLoteData.data_lote)}
                   </h1>
                   <p className="text-sm lg:text-base text-gray-600 truncate">{selectedLoteData.nome_arquivo}</p>
                 </div>

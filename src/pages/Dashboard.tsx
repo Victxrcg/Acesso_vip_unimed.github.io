@@ -117,6 +117,28 @@ const Dashboard = () => {
       });
   }, []);
 
+  // Função para corrigir problema de fuso horário na data
+  const corrigirDataLote = (dataString: string) => {
+    if (!dataString) return '';
+    
+    // Se a data está no formato YYYY-MM-DD, tratar como data local (não UTC)
+    if (typeof dataString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dataString)) {
+      const [ano, mes, dia] = dataString.split('-');
+      // Criar data como local, não UTC
+      const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+      return data.toLocaleDateString('pt-BR');
+    }
+    
+    // Caso contrário, usar a formatação padrão
+    try {
+      const data = new Date(dataString);
+      return data.toLocaleDateString('pt-BR');
+    } catch (error) {
+      console.error('Erro ao formatar data:', error, dataString);
+      return dataString;
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -265,7 +287,7 @@ const Dashboard = () => {
                               Lote {lote.id}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(lote.data_lote).toLocaleDateString('pt-BR')}
+                              {corrigirDataLote(lote.data_lote)}
                             </span>
                           </div>
                           <p className="text-sm font-medium truncate" title={lote.nome_arquivo}>
@@ -280,7 +302,7 @@ const Dashboard = () => {
                             Importado em
                           </div>
                           <div className="text-xs font-medium">
-                            {new Date(lote.importado_em).toLocaleDateString('pt-BR')}
+                            {corrigirDataLote(lote.importado_em)}
                           </div>
                         </div>
                       </div>
