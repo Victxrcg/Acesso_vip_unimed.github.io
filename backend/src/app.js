@@ -12,7 +12,6 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://172.23.96.1:5175',
     'http://10.100.20.241:5175',
-    'https://acessovipunimedgithubio-production.up.railway.app',
     'https://auditaai.portes.com.br',
     'https://auditaai.portes.com.br/customers',
     'https://auditaai.portes.com.br/login',
