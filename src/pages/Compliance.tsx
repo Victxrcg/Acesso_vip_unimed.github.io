@@ -53,10 +53,18 @@ const Compliance = () => {
         console.log('Quantidade de lotes:', Array.isArray(data) ? data.length : 'N/A');
         
         if (Array.isArray(data)) {
-          setLotes(data);
-          if (data.length > 0) {
-            console.log('Selecionando primeiro lote:', data[0].id);
-            setSelectedLote(data[0].id);
+          // Ordenar lotes por ID (maior para menor) - mais recente primeiro
+          const lotesOrdenados = data.sort((a, b) => {
+            // Ordena por ID decrescente (maior ID = mais recente)
+            return b.id - a.id;
+          });
+          
+          console.log('LOTES ORDENADOS:', lotesOrdenados);
+          setLotes(lotesOrdenados);
+          
+          if (lotesOrdenados.length > 0) {
+            console.log('Selecionando primeiro lote (mais recente):', lotesOrdenados[0].id);
+            setSelectedLote(lotesOrdenados[0].id);
           }
         } else {
           console.error('Dados não são um array:', data);
@@ -300,7 +308,7 @@ const Compliance = () => {
               <p className="text-sm text-gray-600 mt-2">Carregando lotes...</p>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.isArray(lotes) && lotes.map((lote) => (
                 <button
                   key={lote.id}
