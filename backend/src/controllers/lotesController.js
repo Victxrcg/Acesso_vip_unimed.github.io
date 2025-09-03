@@ -300,7 +300,7 @@ exports.importarLote = async (req, res) => {
         const cpfCnpjNormalizado = normalizeCpfCnpj(registro.cpf_cnpj);
         
         // Criar um código único para este lote para evitar conflitos
-        const codigoTituloUnico = `${novoLoteId}-${registro.codigo_titulo}`;
+        const codigoTituloUnico = registro.codigo_titulo;
         
         return [
           novoLoteId,
@@ -310,7 +310,7 @@ exports.importarLote = async (req, res) => {
           registro.nome_cliente,
           registro.cod_registro_plano_ans,
           cpfCnpjNormalizado,
-          codigoTituloUnico, // Usar código único
+          codigoTituloUnico, // Usar código do título original sem adicionar ID do lote
           valorOriginal,
           valorAtual,
           registro.dias_atraso
