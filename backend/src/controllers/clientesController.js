@@ -80,8 +80,8 @@ const buscarAnexosPorCpf = async (req, res) => {
     
     // 1. Buscar anexos diretamente pelo CPF normalizado (lotes novos)
     let [anexos] = await pool.query(
-      'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
-      [cpfNormalizado]  // ← CORREÇÃO: usar cpfNormalizado em vez de cpf
+      'SELECT * FROM cancelamento_pdfs WHERE cpf = ? OR cpf = ?',
+      [cpf, cpfNormalizado]  // ← Busca pelos dois formatos
     );
     
     // 2. Se não encontrar, buscar por cpf_cnpj normalizado (lotes antigos)
