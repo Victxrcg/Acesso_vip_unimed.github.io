@@ -78,21 +78,40 @@ const buscarAnexosPorCpf = async (req, res) => {
     const cpfNormalizado = cpf.replace(/^0+/, '');
     console.log('🔧 CPF normalizado:', cpfNormalizado);
     
-    // Buscar anexos diretamente pelo CPF (sem JOIN para evitar associações incorretas)
+    // 1. Buscar anexos diretamente pelo CPF (lotes novos)
     let [anexos] = await pool.query(
       'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
-      [cpf]
+      [cpfNormalizado]
     );
     
-    // 2. Se não encontrar, buscar por cpf_cnpj normalizado
+    console.log(`📎 Anexos encontrados diretamente pelo CPF: ${anexos.length}`);
+    
+    // 2. Se não encontrar, buscar por contrato MAS filtrando pelo CPF específico (lotes antigos)
     if (anexos.length === 0) {
-      console.log('🔍 CPF não encontrado, buscando por cpf_cnpj normalizado...');
-      [anexos] = await pool.query(`
-        SELECT cp.*, cc.cpf_cnpj, cc.nome_cliente, cc.numero_contrato
-        FROM cancelamento_pdfs cp
-        INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
-        WHERE cc.cpf_cnpj = ?
-      `, [cpfNormalizado]);
+      console.log('�� CPF não encontrado diretamente, buscando por contrato com filtro de CPF...');
+      
+      // Primeiro, encontrar o cliente específico pelo CPF
+      const [clientes] = await pool.query(
+        'SELECT id, numero_contrato, nome_cliente, cpf_cnpj FROM clientes_cancelamentos WHERE cpf_cnpj = ? OR cpf_cnpj = ?',
+        [cpf, cpfNormalizado]
+      );
+      
+      if (clientes.length > 0) {
+        const cliente = clientes[0];
+        console.log('✅ Cliente encontrado:', cliente.nome_cliente, 'Contrato:', cliente.numero_contrato);
+        
+        // Buscar anexos pelo contrato MAS apenas do cliente específico
+        [anexos] = await pool.query(`
+          SELECT cp.*, cc.cpf_cnpj, cc.nome_cliente, cc.numero_contrato
+          FROM cancelamento_pdfs cp
+          INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
+          WHERE cc.numero_contrato = ? AND cc.cpf_cnpj = ?
+        `, [cliente.numero_contrato, cpfNormalizado]);
+        
+        console.log(`📎 Anexos encontrados por contrato + CPF: ${anexos.length}`);
+      } else {
+        console.log('❌ Cliente não encontrado para CPF:', cpf);
+      }
     }
     
     console.log(`📎 Total de anexos encontrados para CPF ${cpf}:`, anexos.length);
