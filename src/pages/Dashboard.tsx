@@ -123,6 +123,11 @@ const Dashboard = () => {
       const fileContent = await file.text();
       const nomeArquivo = file.name;
       
+      // Verificar tamanho do arquivo antes de enviar
+      if (fileContent.length > 40 * 1024 * 1024) { // 40MB
+        throw new Error('Arquivo muito grande. Tamanho máximo permitido: 40MB');
+      }
+      
       const response = await fetch(`${API_BASE}/api/lotes/importar`, {
         method: 'POST',
         headers: {
@@ -134,6 +139,19 @@ const Dashboard = () => {
           dataLote: new Date().toISOString().split('T')[0]
         }),
       });
+
+      // Verificar se a resposta é JSON válida
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Resposta não é JSON:', textResponse.substring(0, 200));
+        
+        if (response.status === 413) {
+          throw new Error('Arquivo muito grande para upload. Tente dividir o arquivo em partes menores.');
+        } else {
+          throw new Error(`Erro do servidor (${response.status}): ${textResponse.substring(0, 100)}`);
+        }
+      }
 
       const result = await response.json();
 

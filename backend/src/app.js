@@ -53,7 +53,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Range'],
   exposedHeaders: ['Content-Disposition', 'Content-Length', 'Content-Range', 'Accept-Ranges']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 app.use('/api/lotes_cancelamento', lotesRoutes);
 app.use('/api/lotes_cancelamento', clientesRoutes); // clientes por lote
