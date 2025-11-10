@@ -7,18 +7,17 @@ require('dotenv').config();
 const lotesRoutes = require('./routes/lotesRoutes');
 const clientesRoutes = require('./routes/clientesRoutes');
 const allowedOrigins = [
-  'http://localhost:5175',
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://172.23.96.1:5175',
-  'http://10.100.20.241:5175',
-  'https://auditaai.portes.com.br',
-];
-
-const allowedHosts = [
-  'auditaai.portes.com.br',
-  'api-auditaai.portes.com.br',
-];
+    'http://localhost:5175',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://172.23.96.1:5175',
+    'http://10.100.20.241:5175',
+    'https://auditaai.portes.com.br',
+    'https://auditaai.portes.com.br/customers',
+    'https://auditaai.portes.com.br/login',
+    'https://auditaai.portes.com.br/dashboard',
+    'https://auditaai.portes.com.br/compliance',
+  ];
 // const pdfsRoutes = require('./routes/pdfsRoutes');
 const bcrypt = require('bcrypt');
 const { getDbPoolWithTunnel, closeAllConnections } = require('./lib/db');
@@ -40,22 +39,7 @@ app.use(cors({
       return callback(null, true);
     }
     
-    const isExplicitlyAllowed = allowedOrigins.includes(origin);
-    let isHostAllowed = false;
-
-    if (!isExplicitlyAllowed) {
-      try {
-        const { hostname, protocol } = new URL(origin);
-        isHostAllowed =
-          allowedHosts.includes(hostname) &&
-          (protocol === 'https:' || protocol === 'http:');
-      } catch (err) {
-        console.log('❌ Origem inválida:', origin, err.message);
-        return callback(new Error('Origem inválida.'), false);
-      }
-    }
-
-    if (!isExplicitlyAllowed && !isHostAllowed) {
+    if (allowedOrigins.indexOf(origin) === -1) {
       console.log('❌ Origem não permitida:', origin);
       const msg = 'A origem não é permitida pelo CORS.';
       return callback(new Error(msg), false);
