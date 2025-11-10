@@ -78,13 +78,13 @@ const buscarAnexosPorCpf = async (req, res) => {
     const cpfNormalizado = cpf.replace(/^0+/, '');
     console.log('🔧 CPF normalizado:', cpfNormalizado);
     
-    // 1. Buscar anexos diretamente pelo CPF normalizado (lotes novos)
+    // 1. Buscar anexos diretamente pelo CPF
     let [anexos] = await pool.query(
-      'SELECT * FROM cancelamento_pdfs WHERE cpf = ? OR cpf = ?',
-      [cpf, cpfNormalizado]  // ← Busca pelos dois formatos
+      'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
+      [cpfNormalizado]  // ← CORREÇÃO: usar cpfNormalizado em vez de cpf
     );
     
-    // 2. Se não encontrar, buscar por cpf_cnpj normalizado (lotes antigos)
+    // 2. Se não encontrar, buscar por cpf_cnpj normalizado
     if (anexos.length === 0) {
       console.log('🔍 CPF não encontrado, buscando por cpf_cnpj normalizado...');
       [anexos] = await pool.query(`

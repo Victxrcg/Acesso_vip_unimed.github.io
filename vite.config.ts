@@ -15,6 +15,7 @@ export default defineConfig({
     allowedHosts: [
       'auditaai.portes.com.br',
       'api-auditaai.portes.com.br'
+      
     ]
   },
 }); 

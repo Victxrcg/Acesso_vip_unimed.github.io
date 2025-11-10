@@ -35,7 +35,7 @@ const Compliance = () => {
   const [loadingAnexos, setLoadingAnexos] = useState({});
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5175';
 
   // Buscar lotes ao montar
   useEffect(() => {

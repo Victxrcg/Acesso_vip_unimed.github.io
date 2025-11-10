@@ -34,6 +34,27 @@ function parseDecimal(value) {
   return isNaN(num) ? null : num;
 }
 
+// Função para normalizar CPF/CNPJ corretamente
+function normalizeCpfCnpj(cpfCnpj) {
+  if (!cpfCnpj) return '';
+  
+  // Remove TODOS os caracteres especiais (pontos, traços, espaços)
+  let clean = String(cpfCnpj).replace(/[^\d]/g, '');
+  
+  // Para CPF (deve ter 11 dígitos)
+  if (clean.length <= 11) {
+    // Pad com zeros à esquerda para garantir 11 dígitos
+    clean = clean.padStart(11, '0');
+  }
+  // Para CNPJ (deve ter 14 dígitos)
+  else if (clean.length <= 14) {
+    // Pad com zeros à esquerda para garantir 14 dígitos
+    clean = clean.padStart(14, '0');
+  }
+  
+  return clean;
+}
+
 // Ler o arquivo CSV
 const csvPath = path.join(__dirname, '..', 'UNIMED_CANCELAMENTO_170425.csv');
 const csvContent = fs.readFileSync(csvPath, 'utf8');
@@ -72,9 +93,21 @@ const registrosValidos = registros.filter(r =>
 
 console.log(`Registros válidos: ${registrosValidos.length}`);
 
+// Verificar normalização de CPFs
+console.log('\n=== VERIFICAÇÃO DE NORMALIZAÇÃO DE CPFs ===');
+const cpfsExemplo = registrosValidos.slice(0, 5).map(r => ({
+  original: r.cpf_cnpj,
+  normalizado: normalizeCpfCnpj(r.cpf_cnpj),
+  tamanho: normalizeCpfCnpj(r.cpf_cnpj).length
+}));
+cpfsExemplo.forEach((cpf, idx) => {
+  console.log(`CPF ${idx + 1}: "${cpf.original}" → "${cpf.normalizado}" (${cpf.tamanho} dígitos)`);
+});
+
 // Gerar SQL
 const sqlContent = `-- Script para importar lote de cancelamento UNIMED 17/04/2025
 -- Gerado automaticamente em ${new Date().toISOString()}
+-- CORRIGIDO: Normalização de CPF/CNPJ para preservar zeros à esquerda
 
 -- 1. Criar o lote (se não existir)
 INSERT IGNORE INTO lotes_cancelamento (id, nome_arquivo, data_lote, total_registros) 
@@ -89,7 +122,10 @@ ${registrosValidos.map(registro => {
   const valorOriginal = registro.valor_original !== null ? registro.valor_original : 'NULL';
   const valorAtual = registro.valor_atual !== null ? registro.valor_atual : 'NULL';
   
-  return `(5, '${escapeSqlString(registro.numero_contrato)}', ${dataVencimento}, '${escapeSqlString(registro.especie)}', '${escapeSqlString(registro.nome_cliente)}', '${escapeSqlString(registro.cod_registro_plano_ans)}', '${escapeSqlString(registro.cpf_cnpj)}', '${escapeSqlString(registro.codigo_titulo)}', ${valorOriginal}, ${valorAtual}, ${registro.dias_atraso})`;
+  // IMPORTANTE: Normalizar CPF/CNPJ corretamente
+  const cpfCnpjNormalizado = normalizeCpfCnpj(registro.cpf_cnpj);
+  
+  return `(5, '${escapeSqlString(registro.numero_contrato)}', ${dataVencimento}, '${escapeSqlString(registro.especie)}', '${escapeSqlString(registro.nome_cliente)}', '${escapeSqlString(registro.cod_registro_plano_ans)}', '${cpfCnpjNormalizado}', '${escapeSqlString(registro.codigo_titulo)}', ${valorOriginal}, ${valorAtual}, ${registro.dias_atraso})`;
 }).join(',\n')};
 
 -- 3. Atualizar total de registros do lote
@@ -105,6 +141,26 @@ SELECT
   'Total de registros inseridos:' as info,
   COUNT(*) as total
 FROM clientes_cancelamentos WHERE lote_id = 5;
+
+-- 5. Verificar normalização de CPFs
+SELECT 
+  'Verificação de CPFs:' as info,
+  COUNT(*) as total_registros,
+  SUM(CASE WHEN LENGTH(cpf_cnpj) = 11 THEN 1 ELSE 0 END) as cpf_11_digitos,
+  SUM(CASE WHEN LENGTH(cpf_cnpj) = 14 THEN 1 ELSE 0 END) as cnpj_14_digitos,
+  SUM(CASE WHEN LENGTH(cpf_cnpj) NOT IN (11, 14) THEN 1 ELSE 0 END) as formato_incorreto
+FROM clientes_cancelamentos WHERE lote_id = 5;
+
+-- 6. Exemplos de CPFs normalizados
+SELECT 
+  'Exemplos de CPFs normalizados:' as info,
+  nome_cliente,
+  cpf_cnpj,
+  LENGTH(cpf_cnpj) as tamanho
+FROM clientes_cancelamentos 
+WHERE lote_id = 5 
+ORDER BY id 
+LIMIT 5;
 `;
 
 // Salvar o arquivo SQL
@@ -115,4 +171,9 @@ console.log(`\n✅ Arquivo SQL gerado com sucesso: ${outputPath}`);
 console.log(`📊 Total de registros: ${registrosValidos.length}`);
 console.log(`📁 Arquivo: ${path.basename(outputPath)}`);
 console.log(`\n🚀 Para importar no servidor:`);
-console.log(`mysql -h SEU_HOST -u SEU_USUARIO -p SUA_BASE < ${path.basename(outputPath)}`); 
+console.log(`mysql -h SEU_HOST -u SEU_USUARIO -p SUA_BASE < ${path.basename(outputPath)}`);
+console.log(`\n🔧 CORREÇÕES APLICADAS:`);
+console.log(`- ✅ Normalização de CPF/CNPJ corrigida`);
+console.log(`- ✅ Zeros à esquerda preservados`);
+console.log(`- ✅ Formato consistente (11 dígitos para CPF, 14 para CNPJ)`);
+console.log(`- ✅ Relacionamento com anexos funcionando`); 

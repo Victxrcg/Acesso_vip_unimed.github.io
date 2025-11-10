@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = 'http://localhost:5175';
 
 async function setupAudioDatabase() {
   console.log('🎵 Configurando banco de dados para áudios...\n');
@@ -53,7 +53,7 @@ async function setupAudioDatabase() {
   } catch (error) {
     console.error('❌ Erro durante a configuração:', error.message);
     console.log('\n💡 Certifique-se de que:');
-    console.log('   1. O servidor backend está rodando em http://localhost:3001');
+    console.log('   1. O servidor backend está rodando em http://localhost:5175');
     console.log('   2. Os arquivos de áudio existem nos caminhos especificados no banco');
     console.log('   3. O banco de dados está acessível');
   }
