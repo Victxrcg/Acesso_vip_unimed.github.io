@@ -63,7 +63,7 @@ const Dashboard = () => {
   const [buscaClientes, setBuscaClientes] = useState("");
   const { toast } = useToast();
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
 
   const fetchLotes = async () => {
     setLoadingLotes(true);

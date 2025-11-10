@@ -63,7 +63,7 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   // Troque a base das URLs para a produção
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
 
   useEffect(() => {
     const fetchCustomers = async () => {

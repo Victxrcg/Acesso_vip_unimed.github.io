@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Search, 
   Filter, 
@@ -18,7 +19,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileDown,
-  Paperclip
+  Paperclip,
+  Download
 } from "lucide-react";
 
 const Compliance = () => {
@@ -33,9 +35,11 @@ const Compliance = () => {
   const [itemsPerPage] = useState(35);
   const [anexos, setAnexos] = useState({});
   const [loadingAnexos, setLoadingAnexos] = useState({});
+  const [isAttachmentsDialogOpen, setIsAttachmentsDialogOpen] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5175';
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://api-auditaai.portes.com.br';
 
   // Buscar lotes ao montar
   useEffect(() => {
@@ -258,28 +262,82 @@ const Compliance = () => {
     link.click();
   };
 
+  const formatFileSize = (bytes) => {
+    if (!bytes || Number.isNaN(Number(bytes))) return 'Tamanho indisponível';
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Data não informada';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Data não informada';
+    return date.toLocaleString('pt-BR');
+  };
+
   // Função para obter ícone baseado no tipo de arquivo
-  const getFileIcon = (fileName) => {
-    if (!fileName) return <FileText className="h-4 w-4 text-gray-500" />;
+  const getFileIcon = (fileName, className = "h-4 w-4") => {
+    const baseClass = `${className} flex-shrink-0`;
+    if (!fileName) return <FileText className={`${baseClass} text-gray-500`} />;
     
     const extension = fileName.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf':
-        return <FileText className="h-4 w-4 text-red-500" />;
+        return <FileText className={`${baseClass} text-red-500`} />;
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
       case 'bmp':
-        return <FileText className="h-4 w-4 text-green-500" />;
+        return <FileText className={`${baseClass} text-green-500`} />;
       case 'doc':
       case 'docx':
-        return <FileText className="h-4 w-4 text-blue-500" />;
+        return <FileText className={`${baseClass} text-blue-500`} />;
       case 'xls':
       case 'xlsx':
-        return <FileText className="h-4 w-4 text-green-600" />;
+        return <FileText className={`${baseClass} text-amber-500`} />;
       default:
-        return <FileText className="h-4 w-4 text-gray-500" />;
+        return <FileText className={`${baseClass} text-gray-500`} />;
+    }
+  };
+
+  const selectedClienteKey = useMemo(() => {
+    if (!selectedCliente) return null;
+    return normalizeCpfCnpj(selectedCliente.cpf_cnpj);
+  }, [selectedCliente]);
+
+  const selectedClienteAnexos = useMemo(() => {
+    if (!selectedClienteKey) return [];
+    return anexos[selectedClienteKey] || [];
+  }, [anexos, selectedClienteKey]);
+
+  const openAttachmentsDialog = (cliente) => {
+    setSelectedCliente(cliente);
+    const cpf = normalizeCpfCnpj(cliente.cpf_cnpj);
+    if (cpf && !anexos[cpf] && !loadingAnexos[cpf]) {
+      buscarAnexos(cliente);
+    }
+    setIsAttachmentsDialogOpen(true);
+  };
+
+  const handleDownloadAllAnexos = () => {
+    if (!selectedClienteAnexos.length) return;
+    selectedClienteAnexos.forEach((anexo) => {
+      if (anexo?.file_name) {
+        downloadAnexo(anexo.file_name);
+      }
+    });
+  };
+
+  const selectedClienteLoading = selectedClienteKey ? loadingAnexos[selectedClienteKey] : false;
+
+  const handleAttachmentsDialogChange = (open) => {
+    setIsAttachmentsDialogOpen(open);
+    if (!open) {
+      setSelectedCliente(null);
     }
   };
 
@@ -559,34 +617,44 @@ const Compliance = () => {
                                 </Badge>
                               )}
                             </p>
-                            <div className="flex flex-wrap gap-1">
-                              {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
-                                <div className="flex items-center space-x-2">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                  <span className="text-xs text-gray-500">Buscando anexos...</span>
+                            {(() => {
+                              const cpfKey = normalizeCpfCnpj(cliente.cpf_cnpj);
+                              const anexosCliente = anexos[cpfKey] || [];
+                              const anexosCount = anexosCliente.length;
+                              const isLoading = loadingAnexos[cpfKey];
+                              return (
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Paperclip className="h-3 w-3 text-gray-500" />
+                                    {isLoading ? (
+                                      <div className="flex items-center space-x-2">
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                        <span className="text-xs text-gray-500">Buscando anexos...</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                          {anexosCount}
+                                        </Badge>
+                                        {anexosCount === 0 && (
+                                          <span className="text-xs text-gray-400 italic">Nenhum anexo</span>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openAttachmentsDialog(cliente)}
+                                    className="flex items-center gap-2 w-full"
+                                    disabled={isLoading}
+                                  >
+                                    <Paperclip className="h-3 w-3" />
+                                    <span className="text-xs">Anexos</span>
+                                  </Button>
                                 </div>
-                              ) : hasAnexos(cliente) ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
-                                    <Button
-                                      key={idx}
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => downloadAnexo(anexo.file_name)}
-                                      className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                      title={`Baixar ${anexo.file_name} (Tipo: ${anexo.tipo})`}
-                                    >
-                                      {getFileIcon(anexo.file_name)}
-                                      <span className="ml-1 truncate max-w-16">
-                                        {anexo.file_name.split('.').pop()?.toUpperCase()}
-                                      </span>
-                                    </Button>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-xs text-gray-400 italic">Nenhum anexo encontrado</div>
-                              )}
-                            </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </CardContent>
@@ -631,13 +699,18 @@ const Compliance = () => {
                           </TableCell>
                         </TableRow>
                       ) : currentClientes.length > 0 ? (
-                        currentClientes.map((cliente, index) => (
-                          <TableRow 
-                            key={cliente.cpf_cnpj} 
-                            className={`hover:bg-gray-50 transition-colors ${
-                              index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
-                            }`}
-                          >
+                        currentClientes.map((cliente, index) => {
+                          const cpfKey = normalizeCpfCnpj(cliente.cpf_cnpj);
+                          const anexosCliente = anexos[cpfKey] || [];
+                          const anexosCount = anexosCliente.length;
+                          const isLoading = loadingAnexos[cpfKey];
+                          return (
+                            <TableRow 
+                              key={cliente.cpf_cnpj} 
+                              className={`hover:bg-gray-50 transition-colors ${
+                                index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                              }`}
+                            >
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -698,46 +771,32 @@ const Compliance = () => {
                               <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
                                   <Paperclip className="h-3 w-3 text-gray-500" />
-                                  {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
+                                    {isLoading ? (
                                     <span className="text-xs text-blue-600">carregando...</span>
                                   ) : (
                                     <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                      {hasAnexos(cliente) ? anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].length : 0}
+                                        {anexosCount}
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {loadingAnexos[normalizeCpfCnpj(cliente.cpf_cnpj)] ? (
-                                    <div className="flex items-center space-x-2">
-                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                                      <span className="text-xs text-gray-500">Buscando...</span>
-                                    </div>
-                                  ) : hasAnexos(cliente) ? (
-                                    <div className="flex flex-wrap gap-1">
-                                      {anexos[normalizeCpfCnpj(cliente.cpf_cnpj)].map((anexo, idx) => (
-                                        <Button
-                                          key={idx}
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => downloadAnexo(anexo.file_name)}
-                                          className="h-6 px-2 text-xs bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hover:from-green-100 hover:to-blue-100"
-                                          title={`Baixar ${anexo.file_name} (Tipo: ${anexo.tipo})`}
-                                        >
-                                          {getFileIcon(anexo.file_name)}
-                                          <span className="ml-1 truncate max-w-16">
-                                            {anexo.file_name.split('.').pop()?.toUpperCase()}
-                                          </span>
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openAttachmentsDialog(cliente)}
+                                    className="flex items-center gap-2"
+                                    disabled={isLoading}
+                                  >
+                                    <Paperclip className="h-3 w-3" />
+                                    <span className="text-xs">Anexos</span>
+                                  </Button>
+                                  {!isLoading && anexosCount === 0 && (
                                     <div className="text-xs text-gray-400 italic">Nenhum anexo</div>
                                   )}
-                                </div>
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
+                          );
+                        })
                       ) : (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-12">
@@ -915,6 +974,120 @@ const Compliance = () => {
           </div>
         </div>
       )}
+      <Dialog open={isAttachmentsDialogOpen} onOpenChange={handleAttachmentsDialogChange}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">
+              Gerenciar Anexos
+              {selectedCliente ? ` - ${selectedCliente.nome_cliente}` : ""}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              Visualize e faça download dos anexos associados a este cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-3 sm:p-4 bg-muted/40 rounded-lg border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="font-medium text-foreground">CPF/CNPJ:</span>{" "}
+                  <span className="font-mono text-muted-foreground">
+                    {selectedCliente ? formatCpfCnpj(selectedCliente.cpf_cnpj) : "--"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Contratos:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {selectedCliente?.contratos && selectedCliente.contratos.length > 0
+                      ? selectedCliente.contratos.join(", ")
+                      : "Nenhum contrato informado"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Quantidade de anexos:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {selectedClienteLoading ? "Carregando..." : selectedClienteAnexos.length}
+                  </span>
+                </div>
+                {selectedCliente?.codigos && selectedCliente.codigos.length > 0 && (
+                  <div>
+                    <span className="font-medium text-foreground">Títulos:</span>{" "}
+                    <span className="text-muted-foreground">
+                      {selectedCliente.codigos.join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-medium">
+                Anexos ({selectedClienteAnexos.length})
+              </h3>
+              {selectedClienteAnexos.length > 0 && (
+                <Button
+                  size="sm"
+                  onClick={handleDownloadAllAnexos}
+                  disabled={selectedClienteLoading}
+                  className="flex items-center gap-2 w-full sm:w-auto"
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Todos
+                </Button>
+              )}
+            </div>
+
+            {selectedClienteLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="text-sm">Carregando anexos...</span>
+                </div>
+              </div>
+            ) : selectedClienteAnexos.length > 0 ? (
+              <div className="space-y-3">
+                {selectedClienteAnexos.map((anexo) => (
+                  <div
+                    key={anexo.id || anexo.file_name}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded-lg p-3 sm:p-4 hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-md bg-primary/10 text-primary flex-shrink-0">
+                        {getFileIcon(anexo.file_name, "h-5 w-5")}
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {anexo.file_name}
+                        </p>
+                        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2 gap-y-1">
+                          <span>{anexo.tipo || anexo.mime_type || "Arquivo"}</span>
+                          <span>•</span>
+                          <span>{formatFileSize(anexo.file_size || anexo.file_size_bytes)}</span>
+                          <span>•</span>
+                          <span>{formatDateTime(anexo.uploaded_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                      onClick={() => downloadAnexo(anexo.file_name)}
+                    >
+                      <FileDown className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-sm text-muted-foreground border rounded-lg p-6">
+                Nenhum anexo disponível para este cliente.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
