@@ -74,25 +74,44 @@ const buscarAnexosPorCpf = async (req, res) => {
     
     ({ pool, server } = await getDbPoolWithTunnel());
     
-    // Normalizar CPF (remover zeros à esquerda)
-    const cpfNormalizado = cpf.replace(/^0+/, '');
-    console.log('🔧 CPF normalizado:', cpfNormalizado);
+    const sanitize = (value = '') => value.replace(/\D/g, '');
+    const cpfSemMascara = sanitize(cpf);
+    if (!cpfSemMascara) {
+      return res.status(400).json({ error: 'CPF inválido' });
+    }
+    const cpfSemZeros = cpfSemMascara.replace(/^0+/, '');
+    const valoresBusca = Array.from(new Set(
+      [cpfSemMascara, cpfSemZeros].filter(Boolean)
+    ));
     
-    // 1. Buscar anexos diretamente pelo CPF
+    console.log('🔧 Variantes para busca de CPF:', valoresBusca);
+    
+    // 1. Buscar anexos diretamente pelo CPF armazenado na tabela
     let [anexos] = await pool.query(
-      'SELECT * FROM cancelamento_pdfs WHERE cpf = ?',
-      [cpfNormalizado]  // ← CORREÇÃO: usar cpfNormalizado em vez de cpf
+      `
+        SELECT *
+        FROM cancelamento_pdfs
+        WHERE cpf IN (${valoresBusca.map(() => '?').join(', ')})
+      `,
+      valoresBusca
     );
     
-    // 2. Se não encontrar, buscar por cpf_cnpj normalizado
+    // 2. Se não encontrar, buscar via tabela de clientes, normalizando o CPF/CNPJ
     if (anexos.length === 0) {
-      console.log('🔍 CPF não encontrado, buscando por cpf_cnpj normalizado...');
-      [anexos] = await pool.query(`
-        SELECT cp.*, cc.cpf_cnpj, cc.nome_cliente, cc.numero_contrato
+      console.log('🔍 CPF não encontrado em cancelamento_pdfs, buscando pela tabela de clientes...');
+      const normalizadorSql = "REPLACE(REPLACE(REPLACE(REPLACE(cc.cpf_cnpj, '.', ''), '-', ''), '/', ''), ' ', '')";
+      const placeholders = valoresBusca.map(() => '?').join(', ');
+      const sql = `
+        SELECT
+          cp.*,
+          cc.cpf_cnpj,
+          cc.nome_cliente,
+          cc.numero_contrato
         FROM cancelamento_pdfs cp
         INNER JOIN clientes_cancelamentos cc ON cp.cancelamento_id = cc.id
-        WHERE cc.cpf_cnpj = ?
-      `, [cpfNormalizado]);
+        WHERE ${normalizadorSql} IN (${placeholders})
+      `;
+      [anexos] = await pool.query(sql, valoresBusca);
     }
     
     console.log(`📎 Total de anexos encontrados para CPF ${cpf}:`, anexos.length);
