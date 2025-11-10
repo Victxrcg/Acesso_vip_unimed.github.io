@@ -9,7 +9,7 @@ module.exports = {
     max_memory_restart: '1G',
     env: {
       NODE_ENV: 'production',
-      PORT: 5175,
+      PORT: 3001,
       DB_HOST: '127.0.0.1',
       DB_PORT: '3306',
       DB_USER: 'auditaai_user',

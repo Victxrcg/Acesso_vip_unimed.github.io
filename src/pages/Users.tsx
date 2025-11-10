@@ -15,7 +15,7 @@ interface UserRow {
 }
 
 const Users = () => {
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5175';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
 

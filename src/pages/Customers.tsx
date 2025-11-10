@@ -63,7 +63,7 @@ const Customers = () => {
   const itemsPerPage = 10;
 
   // Troque a base das URLs para a produção
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5175';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     const fetchCustomers = async () => {

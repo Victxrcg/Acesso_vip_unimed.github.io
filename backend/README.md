@@ -12,7 +12,7 @@
    npm start
    ```
 
-O backend irá expor as rotas em http://localhost:5175/api/...
+O backend irá expor as rotas em http://localhost:3001/api/...
 
 ## Estrutura de pastas
 - `src/app.js`: inicialização do Express

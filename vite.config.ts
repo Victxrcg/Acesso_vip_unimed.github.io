@@ -11,7 +11,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3002,
+    port: 5175,
     allowedHosts: [
       'auditaai.portes.com.br',
       'api-auditaai.portes.com.br'
