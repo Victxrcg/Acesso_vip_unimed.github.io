@@ -1461,7 +1461,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3021;
 const server = app.listen(PORT, () => {
   console.log(`Backend rodando em http://localhost:${PORT}`);
 });
