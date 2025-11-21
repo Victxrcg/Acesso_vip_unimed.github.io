@@ -1505,8 +1505,17 @@ app.put('/api/usuarios/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3021;
+console.log('🔧 Configuração de ambiente:');
+console.log('  - PORT:', process.env.PORT || '3021 (padrão)');
+console.log('  - NODE_ENV:', process.env.NODE_ENV || 'não definido');
+console.log('  - DB_HOST:', process.env.DB_HOST || 'NÃO CONFIGURADO');
+console.log('  - DB_USER:', process.env.DB_USER || 'não definido');
+console.log('  - DB_NAME:', process.env.DB_NAME || 'não definido');
+
 const server = app.listen(PORT, () => {
-  console.log(`Backend rodando em http://localhost:${PORT}`);
+  console.log(`🚀 Backend rodando em http://localhost:${PORT}`);
+  console.log(`📊 Modo: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`🗄️  DB_HOST: ${process.env.DB_HOST || 'NÃO CONFIGURADO (modo fallback)'}`);
 });
 
 // Fechar conexões quando o servidor for encerrado
