@@ -2,7 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+
+// Carregar variáveis de ambiente do .env
+const envPath = path.join(__dirname, '..', '.env');
+console.log('🔍 Procurando .env em:', envPath);
+console.log('🔍 .env existe?', fs.existsSync(envPath));
+
+const dotenvResult = require('dotenv').config({ path: envPath });
+if (dotenvResult.error) {
+  console.log('⚠️ Erro ao carregar .env:', dotenvResult.error.message);
+} else {
+  console.log('✅ .env carregado com sucesso');
+  console.log('📋 Variáveis carregadas:', Object.keys(dotenvResult.parsed || {}));
+}
 
 const lotesRoutes = require('./routes/lotesRoutes');
 const clientesRoutes = require('./routes/clientesRoutes');
