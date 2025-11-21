@@ -29,12 +29,19 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Log para debug
+      console.log('🔐 Tentando login:', { usuario: email, API_BASE });
+      
       const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario: email, senha: password })
       });
+      
+      console.log('📡 Status da resposta:', res.status, res.statusText);
+      
       const data = await res.json();
+      console.log('📋 Dados recebidos:', data);
       if (res.ok && data.success) {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -44,9 +51,19 @@ const Login = () => {
           description: 'Bem-vindo ao sistema Compliance App.'
         });
       } else {
+        // Mensagem de erro mais específica
+        let errorMsg = 'Credenciais inválidas.';
+        if (res.status === 401) {
+          errorMsg = data.error || 'Usuário ou senha incorretos. Verifique se você está usando o mesmo email/usuario do cadastro.';
+        } else if (data.error) {
+          errorMsg = data.error;
+        }
+        
+        console.error('❌ Erro no login:', { status: res.status, error: data.error });
+        
         toast({
           title: 'Erro no login',
-          description: data.error || 'Credenciais inválidas.',
+          description: errorMsg,
           variant: 'destructive',
         });
       }
