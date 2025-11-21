@@ -72,6 +72,19 @@ app.post('/api/register', async (req, res) => {
   if (!nome || !email || !senha) {
     return res.status(400).json({ success: false, error: 'Campos obrigatórios: nome, email e senha.' });
   }
+  
+  // Se estiver em modo fallback (sem DB_HOST), salvar em memória
+  if (process.env.NODE_ENV === 'development' || !process.env.DB_HOST) {
+    console.log('🔧 Modo fallback: salvando usuário em memória');
+    const id = Date.now();
+    const passwordHash = await bcrypt.hash(senha, 10);
+    devUsers.set(email, { id, username: email, email, nome, status: 'ativo', passwordHash });
+    console.log('✅ Usuário cadastrado em memória:', email);
+    console.log('📋 Total de usuários em memória:', devUsers.size);
+    return res.json({ success: true, mode: 'fallback' });
+  }
+  
+  // Modo normal com banco de dados
   try {
     const { pool } = await getDbPoolWithTunnel();
     const passwordHash = await bcrypt.hash(senha, 10);
@@ -79,16 +92,15 @@ app.post('/api/register', async (req, res) => {
       'INSERT INTO usuarios (nome, username, password_hash, status) VALUES (?, ?, ?, "ativo")',
       [nome, email, passwordHash]
     );
+    console.log('✅ Usuário cadastrado no banco:', email);
     res.json({ success: true });
   } catch (err) {
     console.warn('⚠️ Registro no banco falhou. Usando fallback dev:', err.message);
-    if (process.env.NODE_ENV === 'development') {
-      const id = Date.now();
-      const passwordHash = await bcrypt.hash(senha, 10);
-      devUsers.set(email, { id, username: email, email, nome, status: 'ativo', passwordHash });
-      return res.json({ success: true, mode: 'fallback' });
-    }
-    res.status(500).json({ success: false, error: 'Erro ao registrar usuário', details: err.message });
+    const id = Date.now();
+    const passwordHash = await bcrypt.hash(senha, 10);
+    devUsers.set(email, { id, username: email, email, nome, status: 'ativo', passwordHash });
+    console.log('✅ Usuário cadastrado em memória (fallback):', email);
+    return res.json({ success: true, mode: 'fallback' });
   }
 });
 
@@ -119,16 +131,26 @@ app.post('/api/empresas', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { usuario, senha } = req.body;
   
+  console.log('🔐 Tentativa de login recebida:', { usuario, senhaLength: senha ? senha.length : 0 });
+  
   // Modo fallback para desenvolvimento
   if (process.env.NODE_ENV === 'development' || !process.env.DB_HOST) {
     console.log('🔧 Modo fallback ativo para login');
+    console.log('📋 Usuários em memória (devUsers):', Array.from(devUsers.keys()));
+    console.log('📋 DB_HOST configurado?', !!process.env.DB_HOST);
+    console.log('📋 NODE_ENV:', process.env.NODE_ENV);
 
     // Se o usuário foi registrado em memória, validar contra ele
     if (devUsers.has(usuario)) {
+      console.log('📋 Usuário encontrado em memória (devUsers):', usuario);
       const user = devUsers.get(usuario);
       const ok = await bcrypt.compare(senha, user.passwordHash);
-      if (!ok) return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+      if (!ok) {
+        console.log('❌ Senha incorreta para usuário em memória');
+        return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+      }
       const safeUser = { id: user.id, username: user.username, email: user.email, nome: user.nome, status: user.status, role: user.role || 'viewer' };
+      console.log('✅ Login bem-sucedido (memória):', usuario);
       return res.json({ success: true, user: safeUser });
     }
     
@@ -139,12 +161,15 @@ app.post('/login', async (req, res) => {
     ];
     const mockUser = mockUsers.find(u => u.username === usuario);
     if (!mockUser) {
-      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
+      console.log('❌ Usuário não encontrado nos mockUsers nem em devUsers:', usuario);
+      console.log('💡 Dica: Use "admin" ou "user" para login rápido, ou cadastre-se primeiro em /api/register');
+      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos. Em modo fallback, use "admin" ou "user", ou cadastre-se primeiro.' });
     }
     if (senha && senha.length > 0) {
       console.log(`✅ Login bem-sucedido (modo fallback): ${usuario}`);
       return res.json({ success: true, user: mockUser });
     } else {
+      console.log('❌ Senha vazia');
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
     }
   }
@@ -152,21 +177,39 @@ app.post('/login', async (req, res) => {
   // Modo normal com banco de dados
   let pool, server;
   try {
+    console.log('🔍 Tentando conectar ao banco de dados...');
     ({ pool, server } = await getDbPoolWithTunnel());
+    console.log('✅ Conexão com banco estabelecida');
     
     // Query simples que funciona sem as colunas email e role
     const selectSql = `SELECT id, username, username as email, password_hash, nome, status, "viewer" as role FROM usuarios WHERE username = ? AND status = "ativo" LIMIT 1`;
     console.log('🔍 Query SQL gerada:', selectSql);
+    console.log('🔍 Buscando usuário:', usuario);
     
     const [rows] = await pool.query(selectSql, [usuario]);
+    console.log('📋 Resultado da query:', { encontrados: rows.length });
+    
     if (rows.length === 0) {
+      console.log('❌ Usuário não encontrado no banco ou está inativo:', usuario);
+      // Verificar se o usuário existe mas está inativo
+      const [inactiveRows] = await pool.query(`SELECT username, status FROM usuarios WHERE username = ? LIMIT 1`, [usuario]);
+      if (inactiveRows.length > 0) {
+        console.log('⚠️ Usuário encontrado mas inativo:', inactiveRows[0]);
+        return res.status(401).json({ success: false, error: 'Usuário inativo. Entre em contato com o administrador.' });
+      }
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
     }
+    
     const user = rows[0];
+    console.log('✅ Usuário encontrado no banco:', { id: user.id, username: user.username, nome: user.nome });
+    
     const senhaCorreta = await bcrypt.compare(senha, user.password_hash);
     if (!senhaCorreta) {
+      console.log('❌ Senha incorreta para usuário:', usuario);
       return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos.' });
     }
+    
+    console.log('✅ Login bem-sucedido:', usuario);
     delete user.password_hash;
     res.json({ success: true, user });
   } catch (err) {
